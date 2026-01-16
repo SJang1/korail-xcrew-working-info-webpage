@@ -62,11 +62,17 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     }
 };
 
+import { toZonedTime, format } from 'date-fns-tz';
+
+// Get current date in KST
+const KOREA_TIME_ZONE = 'Asia/Seoul';
+const nowInKST = toZonedTime(new Date(), KOREA_TIME_ZONE);
+
 // State
 const view = ref<'home' | 'monthly' | 'settings'>('home');
-const todayDate = ref(new Date().toISOString().slice(0, 10).replace(/-/g, '')); // Today's YYYYMMDD
-const currentDate = ref(new Date().toISOString().slice(0, 10).replace(/-/g, '')); // Today's YYYYMMDD
-const viewDate = ref(new Date()); // For Calendar Navigation
+const todayDate = ref(format(nowInKST, 'yyyyMMdd', { timeZone: KOREA_TIME_ZONE }));
+const currentDate = ref(format(nowInKST, 'yyyyMMdd', { timeZone: KOREA_TIME_ZONE }));
+const viewDate = ref(nowInKST);
 
 const todayDia = ref<any>(null);
 const monthlySchedule = ref<any[]>([]);
@@ -150,7 +156,7 @@ const filteredDiaItems = computed(() => {
     
     // Filter: Hide Ended (simple: removes items that have ended if their current delay is non-positive)
     if (hideEnded.value) {
-        const currentTime = new Date();
+        const currentTime = toZonedTime(new Date(), KOREA_TIME_ZONE);
         items = items.filter((item: any) => {
             const trainNo = item.trnNo;
             if (!trainNo || !trainInfos.value[trainNo] || !trainInfos.value[trainNo].found) return true; // Keep non-train items or items without live data
@@ -161,7 +167,7 @@ const filteredDiaItems = computed(() => {
             const [hours, minutes] = String(formatTime(info.arrivalTime)).split(':').map(Number);
             if (hours === undefined || minutes === undefined || isNaN(hours) || isNaN(minutes)) return true; // Keep if time parsing fails
 
-            const arrivalDate = new Date();
+            const arrivalDate = toZonedTime(new Date(), KOREA_TIME_ZONE);
             arrivalDate.setHours(hours, minutes, 0, 0);
             // Adjust for delay if available from the train info (which contains delay)
             if (info.delay) {
@@ -471,7 +477,7 @@ const fetchTrainsForDia = async () => {
             trainInfos.value[task.no] = { error: true };
         });
     }
-    trainLastUpdated.value = new Date().toLocaleTimeString();
+    trainLastUpdated.value = new Date().toLocaleTimeString('ko-KR', { timeZone: KOREA_TIME_ZONE });
 }
 
 const logout = async () => {
@@ -525,7 +531,7 @@ const renderStationTime = (timeStr: string | null, delay: number | null): { orig
     
     if (hours === undefined || minutes === undefined || isNaN(hours) || isNaN(minutes)) return defaultRes;
 
-    const date = new Date();
+    const date = toZonedTime(new Date(), KOREA_TIME_ZONE);
     date.setHours(hours, minutes, 0, 0);
     date.setMinutes(date.getMinutes() + delay);
 
