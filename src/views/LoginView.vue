@@ -81,7 +81,10 @@ const handleSubmit = async () => {
         <button type="submit" :disabled="loading">
             {{ loading ? '처리 중...' : (isRegistering ? '인증 및 회원가입' : '로그인') }}
         </button>
-        <p class="hint">로그인 시 기존 로그인된 기기는 로그아웃됩니다.</p>
+      </div>
+
+      <div v-if="!isRegistering" class="form-group">
+        <p class="hint">로그인 시 기존 로그인된 기기는 전부 로그아웃됩니다.</p>
       </div>
       
       <div class="switch-link">
@@ -95,6 +98,7 @@ const handleSubmit = async () => {
     
     <div class="footer-links">
         <router-link to="/privacy">개인정보 처리방침</router-link>
+        <p class="hint">탈퇴: <a href="mailto:korailxcrew@sjang.dev">korailxcrew@sjang.dev</a> 문의</p>
     </div>
   </div>
 </template>
