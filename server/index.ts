@@ -15,6 +15,8 @@ export default {
         const path = url.pathname;
         const method = request.method;
 
+        let authenticatedUsername: string | null = null; // Declared here for broader scope
+
 		if (path.startsWith("/api/")) {
             // CORS headers
             const corsHeaders = {
@@ -30,9 +32,9 @@ export default {
             // --- Middleware: Verify Auth for Protected Routes ---
             if (path.startsWith("/api/xcrew/") || path.startsWith("/api/train") || path.startsWith("/api/user") || path === "/api/auth/logout") {
                 const secret = await env.JWT_SECRET.get() || "default-dev-secret-change-me";
-                const username = await verifySession(env.KORAIL_XCREW_SESSION_KV, request, secret);
+                authenticatedUsername = await verifySession(env.KORAIL_XCREW_SESSION_KV, request, secret);
                 
-                if (!username && path !== "/api/auth/logout") { // Logout can proceed without a valid session
+                if (!authenticatedUsername && path !== "/api/auth/logout") { // Logout can proceed without a valid session
                     return new Response("Unauthorized: Invalid or expired session", { status: 401, headers: corsHeaders });
                 }
             }
@@ -165,11 +167,9 @@ export default {
                 }
 
                 if (path === "/api/auth/logout" && method === "POST") {
-                    const secret = await env.JWT_SECRET.get() || "default-dev-secret-change-me";
-                    const username = await verifySession(env.KORAIL_XCREW_SESSION_KV, request, secret);
-                    
-                    if (username) {
-                        await destroySession(env.KORAIL_XCREW_SESSION_KV, username);
+                    // username is already verified and available from authenticatedUsername
+                    if (authenticatedUsername) {
+                        await destroySession(env.KORAIL_XCREW_SESSION_KV, authenticatedUsername);
                     }
                     // Always return success, client will clear local storage regardless
                     return Response.json({ success: true }, { headers: corsHeaders });
@@ -182,6 +182,10 @@ export default {
                     const date = url.searchParams.get("date"); // YYYYMMDD
                     if (!username || !date) return new Response("Missing params", { status: 400, headers: corsHeaders });
 
+                    if (!authenticatedUsername || username !== authenticatedUsername) {
+                        return new Response("Unauthorized: Username mismatch", { status: 403, headers: corsHeaders });
+                    }
+
                     const row = await env.DB.prepare("SELECT data FROM schedules WHERE username = ? AND date = ?")
                         .bind(username, date)
                         .first();
@@ -192,7 +196,7 @@ export default {
                     if (scheduleData && Array.isArray(scheduleData)) {
                         const monthPrefix = date.substring(0, 6); // YYYYMM
                         const { results: locs } = await env.DB.prepare("SELECT date, location FROM working_locations WHERE username = ? AND date LIKE ?")
-                            .bind(username, `${monthPrefix}%`)
+                            .bind(requestedUsername, `${monthPrefix}%`)
                             .all();
                         
                         const locMap = (locs || []).reduce((acc: any, curr: any) => {
@@ -228,6 +232,10 @@ export default {
                     const { xcrewId, xcrewPw, date, empName } = await request.json() as any;
                     if (!xcrewId || !xcrewPw || !date || !empName) {
                         return new Response("Missing params", { status: 400, headers: corsHeaders });
+                    }
+
+                    if (!authenticatedUsername || xcrewId !== authenticatedUsername) {
+                        return new Response("Unauthorized: Username mismatch", { status: 403, headers: corsHeaders });
                     }
 
                     const client = new KorailClient(xcrewId, xcrewPw);
@@ -359,6 +367,10 @@ export default {
                     const date = url.searchParams.get("date");
                     if (!username || !date) return new Response("Missing params", { status: 400, headers: corsHeaders });
 
+                    if (!authenticatedUsername || username !== authenticatedUsername) {
+                        return new Response("Unauthorized: Username mismatch", { status: 403, headers: corsHeaders });
+                    }
+
                     const row = await env.DB.prepare("SELECT data FROM dia_info WHERE username = ? AND date = ?")
                         .bind(username, date)
                         .first();
@@ -369,6 +381,10 @@ export default {
                     const { xcrewId, xcrewPw, date } = await request.json() as any;
                      if (!xcrewId || !xcrewPw || !date) {
                         return new Response("Missing params", { status: 400, headers: corsHeaders });
+                    }
+
+                    if (!authenticatedUsername || xcrewId !== authenticatedUsername) {
+                        return new Response("Unauthorized: Username mismatch", { status: 403, headers: corsHeaders });
                     }
                     
                     const client = new KorailClient(xcrewId, xcrewPw);
