@@ -63,12 +63,12 @@ const handleSubmit = async () => {
       <div class="form-group">
         <label>{{ isRegistering ? 'XROIS ID (사용자 ID)' : '사용자 ID' }}</label>
         <input v-model="username" type="text" required />
-        <p class="hint">XROIS 로그인에 사용하는 ID입니다. 이 웹사이트의 ID로 동일하게 사용됩니다.</p>
+        <p class="hint">XROIS 로그인에 사용하는 ID입니다.<br />이 웹사이트의 ID로 동일하게 사용됩니다.</p>
       </div>
       <div class="form-group">
         <label>앱 비밀번호 (로그인용)</label>
         <input v-model="password" type="password" required />
-        <p class="hint">XROIS 비밀번호와 동일하여도 됩니다. XROIS 비밀번호와 동기화 되지 않습니다.</p>
+        <p class="hint">XROIS 비밀번호와 동기화 되지 않는 단독 비밀번호입니다.<br />분실 시 계정 삭제 (관리자 요청) 후 재가입이 필요합니다.</p>
       </div>
       
       <div v-if="isRegistering" class="form-group">
@@ -81,6 +81,7 @@ const handleSubmit = async () => {
         <button type="submit" :disabled="loading">
             {{ loading ? '처리 중...' : (isRegistering ? '인증 및 회원가입' : '로그인') }}
         </button>
+        <p class="hint">로그인 시 기존 로그인된 기기는 로그아웃됩니다.</p>
       </div>
       
       <div class="switch-link">

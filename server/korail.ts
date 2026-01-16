@@ -131,43 +131,63 @@ export class KorailClient {
     // We assume the caller wants data for a specific month or date
     // Python: get_schedule(target_date) where target_date is YYYYMMDD
     async getSchedule(targetDate: string, employeeName: string): Promise<any[]> {
+        return this._execute(
+            async () => {
+                // Step 1: Visit list page
+                const pageUrl = `${BASE_URL}/extrCrewMg/extrIndCrewWrkList.do`;
+                const pageHeaders = {
+                    ...DEFAULT_HEADERS,
+                    "Referer": `${BASE_URL}/extrCrewMg/extrRltmCrewWrkPstt.do`,
+                    "Cookie": this.cookieHeader
+                };
+                
+                const res1 = await fetch(pageUrl, { headers: pageHeaders, redirect: 'manual' });
+                this.updateCookies(res1);
+                if (this._isSessionExpired(res1)) throw new Error("Session expired");
+
+                // Step 2: AJAX request
+                const headers = {
+                    ...AJAX_HEADERS,
+                    "Referer": pageUrl,
+                    "Cookie": this.cookieHeader
+                };
+                const body = new URLSearchParams({
+                    "empNm": employeeName,
+                    "pjtDt": targetDate
+                });
+
+                const res2 = await fetch(SCHEDULE_URL, {
+                    method: 'POST',
+                    headers: headers,
+                    body: body
+                });
+                this.updateCookies(res2);
+                if (this._isSessionExpired(res2)) throw new Error("Session expired");
+
+                const data = await this._parseJsonResponse(res2);
+                return data.data || [];
+            }
+        );
+    }
+
+    private async _execute<T>(action: () => Promise<T>, retry: boolean = true): Promise<T> {
         if (!this.authenticated) {
             await this.authenticate();
         }
 
-        // Step 1: Visit list page
-        const pageUrl = `${BASE_URL}/extrCrewMg/extrIndCrewWrkList.do`;
-        const pageHeaders = {
-            ...DEFAULT_HEADERS,
-            "Referer": `${BASE_URL}/extrCrewMg/extrRltmCrewWrkPstt.do`,
-            "Cookie": this.cookieHeader
-        };
-        
-        const res1 = await fetch(pageUrl, { headers: pageHeaders, redirect: 'manual' });
-        this.updateCookies(res1);
-        if (this._isSessionExpired(res1)) throw new Error("Session expired");
-
-        // Step 2: AJAX request
-        const headers = {
-            ...AJAX_HEADERS,
-            "Referer": pageUrl,
-            "Cookie": this.cookieHeader
-        };
-        const body = new URLSearchParams({
-            "empNm": employeeName,
-            "pjtDt": targetDate
-        });
-
-        const res2 = await fetch(SCHEDULE_URL, {
-            method: 'POST',
-            headers: headers,
-            body: body
-        });
-        this.updateCookies(res2);
-         if (this._isSessionExpired(res2)) throw new Error("Session expired");
-
-        const data = await res2.json() as any;
-        return data.data || [];
+        try {
+            return await action();
+        } catch (e: any) {
+            if (e.message.includes("Session expired") && retry) {
+                console.log("Session expired, re-authenticating...");
+                this.authenticated = false; // Force re-auth
+                await this.authenticate();
+                // Retry the action one more time
+                return await this._execute(action, false);
+            }
+            // Re-throw if not a session error or if retry failed
+            throw e;
+        }
     }
 
     private _isSessionExpired(res: Response): boolean {
@@ -177,63 +197,75 @@ export class KorailClient {
         }
         return false;
     }
+
+    // New method to safely parse JSON or throw session error
+    private async _parseJsonResponse(res: Response): Promise<any> {
+        const text = await res.text();
+        if (text.includes("loginView.do")) { // Check for HTML login page
+            throw new Error("Session expired");
+        }
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            console.error("Failed to parse JSON response:", text);
+            throw new Error("Invalid JSON response from server");
+        }
+    }
     
     // Porting fetch_dia_info logic
     async getDiaInfo(date: string, knownPdiaNo?: string): Promise<any | null> {
-         if (!this.authenticated) {
-            await this.authenticate();
-        }
-        
-        let pdiaNo = knownPdiaNo || "";
+        return this._execute(async () => {
+            let pdiaNo = knownPdiaNo || "";
 
-        if (!pdiaNo) {
-            // Step 1: Get pdiaNo (Only if not provided)
-            const pdiaUrl = `${BASE_URL}/extrCrewMg/searchPdiaNo.do`;
-            const headers = {
-                ...AJAX_HEADERS,
-                 "Referer": `${BASE_URL}/extrCrewMg/extrRltmCrewWrkPstt.do`,
-                 "Cookie": this.cookieHeader
-            };
+            if (!pdiaNo) {
+                // Step 1: Get pdiaNo (Only if not provided)
+                const pdiaUrl = `${BASE_URL}/extrCrewMg/searchPdiaNo.do`;
+                const headers = {
+                    ...AJAX_HEADERS,
+                    "Referer": `${BASE_URL}/extrCrewMg/extrRltmCrewWrkPstt.do`,
+                    "Cookie": this.cookieHeader
+                };
+                
+                const res1 = await fetch(pdiaUrl, {
+                    method: 'POST',
+                    headers: headers,
+                    body: new URLSearchParams({ "pdiaNo": "", "pjtDt": date })
+                });
+                
+                if (this._isSessionExpired(res1)) throw new Error("Session expired");
+                
+                this.updateCookies(res1);
+                
+                const data1 = await this._parseJsonResponse(res1);
+                if (data1.pdiaNo && Array.isArray(data1.pdiaNo) && data1.pdiaNo.length > 0) {
+                    pdiaNo = data1.pdiaNo[0].pdiaNo;
+                } else if (data1.extrCrewMgVO && data1.extrCrewMgVO.pdiaNo) {
+                    pdiaNo = data1.extrCrewMgVO.pdiaNo;
+                }
+            }
             
-            const res1 = await fetch(pdiaUrl, {
+            if (!pdiaNo) return null;
+            
+            // Step 2: Get Details
+            const diaUrl = `${BASE_URL}/extrCrewMg/searchExtrCrewDia.do`;
+            const headers2 = {
+                ...AJAX_HEADERS,
+                "Referer": `${BASE_URL}/extrCrewMg/extrRltmCrewWrkPstt.do`,
+                "Cookie": this.cookieHeader
+            };
+
+            const res2 = await fetch(diaUrl, {
                 method: 'POST',
-                headers: headers,
-                body: new URLSearchParams({ "pdiaNo": "", "pjtDt": date })
+                headers: headers2,
+                body: new URLSearchParams({ "pdiaNo": pdiaNo, "pjtDt": date })
             });
             
-            if (this._isSessionExpired(res1)) throw new Error("Session expired");
+            this.updateCookies(res2);
             
-            this.updateCookies(res1);
+            if (this._isSessionExpired(res2)) throw new Error("Session expired");
             
-            const data1 = await res1.json() as any;
-            if (data1.pdiaNo && Array.isArray(data1.pdiaNo) && data1.pdiaNo.length > 0) {
-                pdiaNo = data1.pdiaNo[0].pdiaNo;
-            } else if (data1.extrCrewMgVO && data1.extrCrewMgVO.pdiaNo) {
-                pdiaNo = data1.extrCrewMgVO.pdiaNo;
-            }
-        }
-        
-        if (!pdiaNo) return null;
-        
-        // Step 2: Get Details
-        const diaUrl = `${BASE_URL}/extrCrewMg/searchExtrCrewDia.do`;
-        const headers2 = {
-            ...AJAX_HEADERS,
-             "Referer": `${BASE_URL}/extrCrewMg/extrRltmCrewWrkPstt.do`,
-             "Cookie": this.cookieHeader
-        };
-
-        const res2 = await fetch(diaUrl, {
-            method: 'POST',
-            headers: headers2,
-            body: new URLSearchParams({ "pdiaNo": pdiaNo, "pjtDt": date })
+            return await this._parseJsonResponse(res2);
         });
-        
-        this.updateCookies(res2);
-        
-        if (this._isSessionExpired(res2)) throw new Error("Session expired");
-        
-        return await res2.json();
     }
 }
 

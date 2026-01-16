@@ -31,11 +31,32 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     };
     
     const res = await fetch(url, { ...options, headers });
+    
     if (res.status === 401) {
         logout(); // Force logout on 401
         throw new Error("Session expired");
     }
-    return res;
+
+    // Clone the response to be able to read it twice
+    const resClone = res.clone();
+
+    try {
+        // Attempt to parse as JSON
+        return await res.json();
+    } catch (e) {
+        if (e instanceof SyntaxError) {
+            // If JSON parsing fails, check if the response body is HTML
+            const text = await resClone.text();
+            if (text.trim().startsWith('<!DOCTYPE html>') || text.trim().startsWith('<html>')) {
+                // This is likely a login page, so the session is expired.
+                console.error("Received HTML instead of JSON, logging out.");
+                logout();
+                throw new Error("Session expired. Please log in again.");
+            }
+        }
+        // Re-throw the original error if it's not the case we are handling
+        throw e;
+    }
 };
 
 // State
@@ -78,7 +99,7 @@ onMounted(async () => {
     router.push('/');
     return;
   }
-  appUser.value = user;
+  appUser.value = user.trim();
 
   // Show help popup on first visit
   const hasSeenHelp = localStorage.getItem('hasSeenHelp');
@@ -254,8 +275,7 @@ const loadScheduleForViewDate = async () => {
         const month = String(viewDate.value.getMonth() + 1).padStart(2, '0');
         const targetDate = `${year}${month}01`; // First of month key
         
-        const schRes = await fetchWithAuth(`/api/xcrew/schedule?username=${appUser.value}&date=${targetDate}`);
-        const schData = await schRes.json();
+        const schData = await fetchWithAuth(`/api/xcrew/schedule?username=${appUser.value}&date=${targetDate}`);
         if (schData.success && schData.data) {
              monthlySchedule.value = schData.data;
              if (schData.colors) locationColors.value = { ...locationColors.value, ...schData.colors };
@@ -273,8 +293,7 @@ const loadDataFromCache = async () => {
     loading.value = true;
     try {
         // Load Today's Dia
-        const diaRes = await fetchWithAuth(`/api/xcrew/dia?username=${appUser.value}&date=${currentDate.value}`);
-        const diaData = await diaRes.json();
+        const diaData = await fetchWithAuth(`/api/xcrew/dia?username=${appUser.value}&date=${currentDate.value}`);
         if (diaData.success) {
             todayDia.value = diaData.data;
             fetchTrainsForDia();
@@ -325,12 +344,11 @@ const confirmPassword = async () => {
 const fetchDiaRemote = async () => {
   loading.value = true;
   try {
-    const res = await fetchWithAuth('/api/xcrew/dia', {
+    const data = await fetchWithAuth('/api/xcrew/dia', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ xcrewId: appUser.value, xcrewPw: xcrewPw.value, date: currentDate.value })
     });
-    const data = await res.json();
     if (data.success) {
       todayDia.value = data.data;
       fetchTrainsForDia();
@@ -349,12 +367,11 @@ const fetchScheduleRemote = async () => {
   const targetDate = `${year}${month}01`;
   
   try {
-    const res = await fetchWithAuth('/api/xcrew/schedule', {
+    const data = await fetchWithAuth('/api/xcrew/schedule', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ xcrewId: appUser.value, xcrewPw: xcrewPw.value, empName: empName.value, date: targetDate })
     });
-    const data = await res.json();
     if (data.success) {
       monthlySchedule.value = data.data;
       if (data.colors) locationColors.value = { ...locationColors.value, ...data.colors };
@@ -422,7 +439,6 @@ const fetchTrainsForDia = async () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ trainNo: task.no, driveDate: task.date })
         })
-        .then(res => res.json())
         .then(data => {
             trainInfos.value[task.no] = data;
         })
