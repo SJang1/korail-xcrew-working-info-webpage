@@ -196,7 +196,7 @@ export default {
                     if (scheduleData && Array.isArray(scheduleData)) {
                         const monthPrefix = date.substring(0, 6); // YYYYMM
                         const { results: locs } = await env.DB.prepare("SELECT date, location FROM working_locations WHERE username = ? AND date LIKE ?")
-                            .bind(requestedUsername, `${monthPrefix}%`)
+                            .bind(username, `${monthPrefix}%`)
                             .all();
                         
                         const locMap = (locs || []).reduce((acc: any, curr: any) => {
