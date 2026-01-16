@@ -104,11 +104,10 @@ onMounted(async () => {
   }
   appUser.value = user.trim();
 
-  // Show help popup on first visit
-  const hasSeenHelp = localStorage.getItem('hasSeenHelp');
-  if (!hasSeenHelp) {
+  // Show help popup on login
+  if (sessionStorage.getItem('showHelpOnLoad')) {
       showHelpPopup.value = true;
-      localStorage.setItem('hasSeenHelp', 'true');
+      sessionStorage.removeItem('showHelpOnLoad');
   }
 
   // Load cached settings

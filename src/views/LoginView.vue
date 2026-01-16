@@ -54,6 +54,7 @@ const handleSubmit = async () => {
       if (data.token) {
           localStorage.setItem('auth_token', data.token);
       }
+      sessionStorage.setItem('showHelpOnLoad', 'true');
       router.push('/dashboard');
     }
   } catch (e: any) {
