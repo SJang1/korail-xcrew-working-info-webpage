@@ -64,10 +64,10 @@ const handleSubmit = async () => {
 
 <template>
   <div class="login-container">
-    <h1>코레일 승무원 승무표 정보 외부 시스템</h1>
-    <h2>{{ isRegistering ? '회원가입' : '로그인' }}</h2>
-    <h3>Made by <a href="https://github.com/SJang1" target="_blank" rel="noopener noreferrer">SJang1</a></h3>
-    <br>
+    <h1 class="title">코레일 승무원 승무표 정보 외부 시스템</h1>
+    <h2 class="title">{{ isRegistering ? '회원가입' : '로그인' }}</h2>
+    <h3 class="title">Made by <a href="https://github.com/SJang1" target="_blank" rel="noopener noreferrer">SJang1</a></h3>
+    <br class="mar-bt-2">
     <form @submit.prevent="handleSubmit">
       <div class="form-group">
         <label>{{ isRegistering ? 'XROIS ID (사용자 ID)' : '사용자 ID' }}</label>
@@ -205,20 +205,21 @@ button:disabled {
   text-align: center;
   font-size: 0.9rem;
 }
-h1 {
+h1 .title {
     text-align: center;
-    margin-bottom: 2rem;
     color: var(--color-text-primary);
 }
-h2 {
+h2 .title {
     text-align: center;
-    margin-bottom: 2rem;
     color: var(--color-text-primary);
 }
-h3 {
+h3 .title {
     text-align: center;
-    margin-bottom: 2rem;
     color: var(--color-text-primary);
+}
+
+.mar-bt-2 {
+    margin-bottom: 2rem;
 }
 
 .footer-links {
