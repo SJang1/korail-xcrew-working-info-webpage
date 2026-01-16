@@ -19,8 +19,8 @@ export default defineConfig({
 				enabled: true
 			},
 			manifest: {
-				name: '코레일 승무원 정보',
-				short_name: '코레일 승무원',
+				name: '코레일 승무원 승무표 정보',
+				short_name: '코레일 승무표',
 				description: '코레일 승무원 근무 정보 확인 웹사이트',
 				theme_color: '#1976d2',
 				icons: [
