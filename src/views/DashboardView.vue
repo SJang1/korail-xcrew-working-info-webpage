@@ -773,7 +773,8 @@ const renderStationTime = (timeStr: string | null, delay: number | null): { orig
 }
 header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 1rem; margin-bottom: 2rem; }
 .user-info h3 { margin: 0; color: var(--color-text-primary); }
-nav a { margin-left: 1rem; text-decoration: none; color: #666; font-weight: 500; padding: 0.5rem; border-radius: 6px; }
+nav { display: flex; flex-wrap: wrap; gap: 0.5rem; } /* Add flex and wrap for buttons */
+nav a { margin-left: 0; text-decoration: none; color: #666; font-weight: 500; padding: 0.5rem; border-radius: 6px; }
 nav a.active { background: #e3f2fd; color: #1976d2; }
 
 .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
@@ -870,16 +871,64 @@ nav a.active { background: #e3f2fd; color: #1976d2; }
 .nav-btn { background: var(--color-bg-hover); border: 1px solid var(--color-border); border-radius: 6px; padding: 0.5rem 1rem; cursor: pointer; font-weight: bold; color: var(--color-text-primary); }
 .nav-btn:hover { background: #e0e0e0; }
 
-.calendar-wrapper { padding: 1rem; }
-.weekdays-row { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 0.5rem; text-align: center; font-weight: 600; color: #718096; font-size: 0.9rem; }
-.calendar-grid { 
-    display: grid; 
-    grid-template-columns: repeat(7, 1fr); 
-    gap: 1px; 
-    background: #e2e8f0; 
-    border: 1px solid #e2e8f0; 
+.calendar-wrapper {
+
+    padding: 1rem;
+
+    overflow-x: auto; /* Enable horizontal scrolling */
+
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+
+}
+
+
+
+.weekdays-row {
+
+    display: grid;
+
+    grid-template-columns: repeat(7, minmax(100px, 1fr)); /* Ensure 7 columns, min width 100px */
+
+    margin-bottom: 0.5rem;
+
+    text-align: center;
+
+    font-weight: 600;
+
+    color: #718096;
+
+    font-size: 0.9rem;
+
+}
+
+
+
+.weekdays-row > div {
+
+    min-width: 100px; /* Ensure weekday headers also respect min-width */
+
+}
+
+
+
+.calendar-grid {
+
+    display: grid;
+
+    grid-template-columns: repeat(7, minmax(100px, 1fr)); /* Ensure 7 columns, min width 100px */
+
+    gap: 1px;
+
+    background: #e2e8f0;
+
+    border: 1px solid #e2e8f0;
+
     border-radius: 8px;
+
     overflow: hidden;
+
+    min-width: 700px; /* Ensure grid always takes at least 7 * 100px */
+
 }
 
 .cal-cell { 
@@ -907,10 +956,79 @@ nav a.active { background: #e3f2fd; color: #1976d2; }
 /* Mobile Optimization: Compact but readable */
 @media (max-width: 767px) {
     .dashboard { padding: 0.5rem; }
+    header {
+        flex-direction: column;
+        align-items: flex-start; /* Align user-info to start */
+        padding-bottom: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    .user-info {
+        width: 100%; /* Ensure user info takes full width */
+        text-align: left; /* Align user info text to left */
+        margin-bottom: 0.5rem;
+    }
+    .user-info h3 { font-size: 1.1rem; margin-bottom: 0.2rem; }
+    nav {
+        width: 100%; /* Ensure nav takes full width */
+        justify-content: space-around; /* Distribute buttons */
+        margin-left: 0;
+    }
+    nav a { margin: 0.2rem; padding: 0.3rem 0.5rem; flex-grow: 1; text-align: center; }
     .calendar-wrapper { padding: 0.5rem; }
     .cal-cell { min-height: 80px; padding: 4px; font-size: 0.75rem; }
     .path-badge { font-size: 0.8rem; }
     .train-info-mini span { font-size: 0.6rem; padding: 1px 3px; }
+}
+
+/* Very Small Mobile Optimization */
+@media (max-width: 420px) {
+    .dashboard {
+        padding: 0.2rem;
+    }
+    .calendar-wrapper {
+        padding: 0.2rem;
+    }
+    .cal-cell {
+        min-height: 75px;
+        padding: 2px;
+        font-size: 0.65rem;
+    }
+    .cell-date {
+        font-size: 0.7rem;
+    }
+    .path-badge, .location-label, .times-label {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .weekdays-row {
+        font-size: 0.75rem;
+    }
+}
+
+/* Extra Small Mobile Optimization */
+@media (max-width: 360px) {
+    .cal-cell {
+        min-height: 65px;
+        padding: 1px;
+        font-size: 0.6rem;
+        line-height: 1.2;
+    }
+    .cell-date {
+        font-size: 0.65rem;
+    }
+    .path-badge {
+        font-size: 0.7rem;
+    }
+    .location-label, .times-label {
+        font-size: 0.6rem;
+    }
+    .train-info-mini span {
+        font-size: 0.55rem;
+    }
+    .weekdays-row {
+        font-size: 0.7rem;
+    }
 }
 
 .cal-cell.padding { background: #f8fafc; }
