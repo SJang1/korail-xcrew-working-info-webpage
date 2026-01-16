@@ -632,7 +632,6 @@ const forceReload = () => {
         <a href="#" :class="{ active: view === 'home' }" @click.prevent="view = 'home'">Dia</a>
         <a href="#" :class="{ active: view === 'monthly' }" @click.prevent="view = 'monthly'">Monthly</a>
         <a href="#" :class="{ active: view === 'settings' }" @click.prevent="view = 'settings'">Settings</a>
-        <a href="#" @click.prevent="logout">Logout</a>
       </nav>
     </header>
 
@@ -898,6 +897,13 @@ const forceReload = () => {
                   강제 새로고침 (캐시 지우기)
               </button>
               <p class="hint">문제가 발생했거나 최신 데이터가 표시되지 않을 때 사용하세요.</p>
+          </div>
+
+          <div class="form-section">
+              <h3>로그아웃</h3>
+              <button class="button-primary" @click="logout">
+                  로그아웃
+              </button>
           </div>
       </div>
 
