@@ -856,8 +856,11 @@ const forceReload = () => {
               <h3>프로필 정보</h3>
               <div class="form-group">
                   <label>승무원 이름</label>
-                  <input v-model="empName" type="text" placeholder="홍길동" @blur="handleUpdateName" />
-                  <p class="hint">XROIS 업데이트 시 사용하는 이름입니다. 입력란에서 포커스가 벗어나면 자동으로 저장됩니다.</p>
+                  <input v-model="empName" type="text" placeholder="홍길동" />
+                  <p class="hint">XROIS 업데이트 시 사용하는 이름입니다. '이름 저장' 버튼을 눌러 저장합니다.</p>
+                  <button class="button-primary" @click="handleUpdateName" :disabled="loading" style="margin-top: 1rem;">
+                      {{ loading ? '저장 중...' : '이름 저장' }}
+                  </button>
               </div>
               
               <div class="form-group">
