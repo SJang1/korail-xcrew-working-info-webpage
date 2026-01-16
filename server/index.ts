@@ -28,16 +28,13 @@ export default {
             }
 
             // --- Middleware: Verify Auth for Protected Routes ---
-            if (path.startsWith("/api/xcrew/") || path.startsWith("/api/train") || path.startsWith("/api/user")) {
+            if (path.startsWith("/api/xcrew/") || path.startsWith("/api/train") || path.startsWith("/api/user") || path === "/api/auth/logout") {
                 const secret = await env.JWT_SECRET.get() || "default-dev-secret-change-me";
                 const username = await verifySession(env.KORAIL_XCREW_SESSION_KV, request, secret);
                 
-                if (!username) {
+                if (!username && path !== "/api/auth/logout") { // Logout can proceed without a valid session
                     return new Response("Unauthorized: Invalid or expired session", { status: 401, headers: corsHeaders });
                 }
-
-                // Attach username to request for later use, maybe via a context object or headers if needed
-                // For this simple case, we'll just re-verify inside user endpoints for clarity
             }
 
             try {
@@ -168,15 +165,13 @@ export default {
                 }
 
                 if (path === "/api/auth/logout" && method === "POST") {
-                    const { username } = await request.json() as any;
-                    // Ideally we verify the token here too, but for now just trusting the username to clear their session
-                    // or we can extract it from the Authorization header.
-                    // For simplicity matching the prompt "new logout", we'll just take username if provided or assume client clears local.
-                    // But to clear KV we need the key (username).
+                    const secret = await env.JWT_SECRET.get() || "default-dev-secret-change-me";
+                    const username = await verifySession(env.KORAIL_XCREW_SESSION_KV, request, secret);
                     
                     if (username) {
                         await destroySession(env.KORAIL_XCREW_SESSION_KV, username);
                     }
+                    // Always return success, client will clear local storage regardless
                     return Response.json({ success: true }, { headers: corsHeaders });
                 }
 

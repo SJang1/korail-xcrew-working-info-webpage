@@ -475,18 +475,17 @@ const fetchTrainsForDia = async () => {
 }
 
 const logout = async () => {
-    const user = localStorage.getItem('app_user');
     try {
-        if (user) {
-            await fetch('/api/auth/logout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: user })
-            });
-        }
+        // Attempt to invalidate the session on the server.
+        // No body is needed as the server uses the Authorization header.
+        await fetchWithAuth('/api/auth/logout', {
+            method: 'POST',
+        });
     } catch (e) {
-        console.error("Logout failed", e);
+        // Log error but don't block client-side logout
+        console.error("Server logout failed, proceeding with client-side cleanup:", e);
     } finally {
+        // Always clear local storage and redirect
         localStorage.removeItem('app_user');
         localStorage.removeItem('auth_token');
         router.push('/');
