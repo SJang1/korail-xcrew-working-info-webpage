@@ -756,7 +756,7 @@ const handleUpdatePassword = async () => {
                                        </div>
                                    </template>
                                    <span v-else-if="trainInfos[seg.trnNo].error" class="status-badge error">오류</span>
-                                   <span v-else class="status-badge not-found">운행정보 없음</span>
+                                   <span v-else class="status-badge error">운행정보 없음</span>
                                </div>
                            </div>
                        </div>
