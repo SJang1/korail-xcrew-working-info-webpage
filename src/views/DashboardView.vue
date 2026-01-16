@@ -517,6 +517,22 @@ const renderStationTime = (timeStr: string | null, delay: number | null): { orig
     };
 }
 
+const getApiStationName = (trainNo: string, segTime: string, type: 'departure' | 'arrival'): string => {
+    if (!trainNo || !trainInfos.value[trainNo] || !trainInfos.value[trainNo].found) return '';
+    
+    const schedule = trainInfos.value[trainNo].schedule;
+    if (!schedule || !Array.isArray(schedule)) return '';
+
+    const formattedSegTime = formatTime(segTime);
+    if (formattedSegTime === '-') return '';
+
+    const timeKey = type === 'departure' ? 'scheduledDepartureTime' : 'scheduledArrivalTime';
+
+    const stop = schedule.find((s: any) => s[timeKey] && s[timeKey].startsWith(formattedSegTime));
+    
+    return stop ? stop.stationName : '';
+};
+
 </script>
 
 <template>
@@ -622,15 +638,17 @@ const renderStationTime = (timeStr: string | null, delay: number | null): { orig
                                                </span>
                                            </div>
                                            <div class="status-timeline">
-                                               <!-- Origin -->
+                                               <!-- 출발역 (Origin) -->
                                                <div class="st-node endpoint-station">
-                                                   <span class="st-name">{{ trainInfos[seg.trnNo].info.departureStation }}</span>
-                                                   <span class="st-time">{{ formatTime(trainInfos[seg.trnNo].info.departureTime) }}</span>
+                                                   <span class="st-label">출발역</span>
+                                                   <span class="st-name">{{ trainInfos[seg.trnNo].info.departureStationName }}</span>
+                                                   <span class="st-time" v-if="trainInfos[seg.trnNo].schedule && trainInfos[seg.trnNo].schedule.length > 0">{{ trainInfos[seg.trnNo].schedule[0].scheduledDepartureTime }}</span>
                                                </div>
                                                <div class="st-line"></div>
-                                               <!-- User Start -->
+                                               <!-- 승차역 (User Start) -->
                                                <div class="st-node">
-                                                   <span class="st-name">{{ seg.dptStnNm || seg.depStnNm }}</span>
+                                                   <span class="st-label">승차역</span>
+                                                   <span class="st-name">{{ getApiStationName(seg.trnNo, seg.dptTm || seg.depTm, 'departure') || seg.dptStnNm || seg.depStnNm }}</span>
                                                    <span class="st-time" v-if="renderStationTime(formatTime(seg.dptTm || seg.depTm), trainInfos[seg.trnNo].info.delay).actual">
                                                        <del>{{ renderStationTime(formatTime(seg.dptTm || seg.depTm), trainInfos[seg.trnNo].info.delay).original }}</del>
                                                        <span class="actual-time" :class="renderStationTime(formatTime(seg.dptTm || seg.depTm), trainInfos[seg.trnNo].info.delay).delayClass">
@@ -640,9 +658,10 @@ const renderStationTime = (timeStr: string | null, delay: number | null): { orig
                                                    <span class="st-time" v-else>{{ formatTime(seg.dptTm || seg.depTm) }}</span>
                                                </div>
                                                <div class="st-line"></div>
-                                               <!-- User End -->
+                                               <!-- 하차역 (User End) -->
                                                <div class="st-node">
-                                                   <span class="st-name">{{ seg.arvStnNm || seg.arrStnNm }}</span>
+                                                   <span class="st-label">하차역</span>
+                                                   <span class="st-name">{{ getApiStationName(seg.trnNo, seg.arvTm || seg.arrTm, 'arrival') || seg.arvStnNm || seg.arrStnNm }}</span>
                                                    <span class="st-time" v-if="renderStationTime(formatTime(seg.arvTm || seg.arrTm), trainInfos[seg.trnNo].info.delay).actual">
                                                        <del>{{ renderStationTime(formatTime(seg.arvTm || seg.arrTm), trainInfos[seg.trnNo].info.delay).original }}</del>
                                                        <span class="actual-time" :class="renderStationTime(formatTime(seg.arvTm || seg.arrTm), trainInfos[seg.trnNo].info.delay).delayClass">
@@ -652,10 +671,11 @@ const renderStationTime = (timeStr: string | null, delay: number | null): { orig
                                                    <span class="st-time" v-else>{{ formatTime(seg.arvTm || seg.arrTm) }}</span>
                                                </div>
                                                <div class="st-line"></div>
-                                               <!-- Destination -->
+                                               <!-- 종착역 (Destination) -->
                                                <div class="st-node endpoint-station">
-                                                   <span class="st-name">{{ trainInfos[seg.trnNo].info.arrivalStation }}</span>
-                                                   <span class="st-time">{{ formatTime(trainInfos[seg.trnNo].info.arrivalTime) }}</span>
+                                                   <span class="st-label">종착역</span>
+                                                   <span class="st-name">{{ trainInfos[seg.trnNo].info.arrivalStationName }}</span>
+                                                   <span class="st-time" v-if="trainInfos[seg.trnNo].schedule && trainInfos[seg.trnNo].schedule.length > 0">{{ trainInfos[seg.trnNo].schedule[trainInfos[seg.trnNo].schedule.length - 1].scheduledArrivalTime }}</span>
                                                </div>
                                            </div>
                                        </div>
@@ -749,7 +769,7 @@ const renderStationTime = (timeStr: string | null, delay: number | null): { orig
 
       <div v-if="loading" class="loading-overlay">
           <div class="spinner"></div>
-          <p>Xcrew 서버와 통신 중...</p>
+          <p>서버와 통신 중...</p>
       </div>
 
       <!-- JIT PASSWORD PROMPT -->
@@ -864,7 +884,8 @@ nav a.active { background: #e3f2fd; color: #1976d2; }
 
 /* Timeline */
 .status-timeline { display: flex; align-items: center; justify-content: center; color: #666; font-size: 0.85em; width: 100%; margin-top: 4px; }
-.st-node { text-align: center; flex: 0 1 auto; min-width: 0; padding: 0 4px; display: flex; flex-direction: column; align-items: center; }
+.st-node { text-align: center; flex: 0 1 auto; min-width: 0; padding: 0 4px; display: flex; flex-direction: column; align-items: center; position: relative; }
+.st-label { font-size: 0.7em; font-weight: 500; color: #718096; position: absolute; top: -14px; white-space: nowrap; }
 .st-node.endpoint-station { opacity: 0.6; }
 .st-name { font-weight: 600; color: #2c3e50; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px; }
 .st-time { display: block; font-size: 0.8em; margin-top: 2px; white-space: nowrap; }

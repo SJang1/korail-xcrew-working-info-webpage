@@ -298,13 +298,31 @@ export class TrainClient {
         
         const data = await res.json() as any;
         
+        // --- KST Timezone Conversion ---
+        const toKST = (utc: number | null | undefined): string | null => {
+            if (utc === null || typeof utc === 'undefined') return null;
+            // Create a Date object from the UTC timestamp (assuming it's in seconds)
+            const date = new Date(utc * 1000);
+            
+            // Format to 'HH:mm:ss' in KST
+            return date.toLocaleTimeString('en-GB', { timeZone: 'Asia/Seoul', hour12: false });
+        };
+
         // Transform raw response to match expected structure
         if (data.result === 200 && data.data && data.data.info) {
+            const schedule = (data.data.schedule || []).map((item: any) => ({
+                ...item,
+                scheduledArrivalTime: toKST(item.scheduledArrivalTime),
+                scheduledDepartureTime: toKST(item.scheduledDepartureTime),
+                actualArrivalTime: toKST(item.actualArrivalTime),
+                actualDepartureTime: toKST(item.actualDepartureTime),
+            }));
+
             return {
                 found: true,
                 message: "OK",
                 info: data.data.info,
-                schedule: data.data.schedule || []
+                schedule: schedule
             };
         } else {
             return {
