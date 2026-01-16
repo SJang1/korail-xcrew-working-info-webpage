@@ -25,7 +25,11 @@ watch(xcrewPw, (newVal) => {
 });
 
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
-    const res = await fetch(url, options);
+    const newOptions = {
+        ...options,
+        credentials: 'same-origin'
+    };
+    const res = await fetch(url, newOptions);
     
     if (res.status === 401) {
         logout(); // Force logout on 401
