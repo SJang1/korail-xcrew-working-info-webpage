@@ -844,11 +844,13 @@ const handleUpdatePassword = async () => {
                   <label>XROIS 비밀번호</label>
                   <input v-model="xcrewPw" type="password" placeholder="브라우저 캐시에 저장됩니다" />
                   <p class="hint">업데이트 시 필요한 XROIS 비밀번호입니다. 이 정보는 서버에 저장되지 않고, 사용자의 브라우저에만 저장됩니다.</p>
+                  <p class="hint">이 비밀번호의 변경은 XROIS에서 직접 하셔야 합니다.</p>
+
               </div>
           </div>
 
           <div class="form-section">
-              <h3>비밀번호 변경</h3>
+              <h3>웹사이트 비밀번호 변경</h3>
               <form @submit.prevent="handleUpdatePassword">
                   <div class="form-group">
                       <label>현재 앱 비밀번호</label>
