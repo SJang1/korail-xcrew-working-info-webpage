@@ -725,7 +725,7 @@ const renderStationTime = (timeStr: string | null, delay: number | null): { orig
             <input v-model="empName" type="text" placeholder="홍길동" />
         </div>
         <div class="form-group">
-            <label>Xcrew 비밀번호 (브라우저에 저장)</label>
+            <label>XROIS 비밀번호 (브라우저에 저장)</label>
             <input v-model="xcrewPw" type="password" placeholder="브라우저 캐시에 저장됩니다" />
         </div>
         <p class="hint">비밀번호는 서버에 저장되지 않고, 사용자의 브라우저에만 저장됩니다.</p>
@@ -739,12 +739,12 @@ const renderStationTime = (timeStr: string | null, delay: number | null): { orig
       <!-- JIT PASSWORD PROMPT -->
       <div v-if="showPasswordPrompt" class="modal-overlay">
           <div class="modal-content prompt">
-              <h3>Xcrew 정보 필요</h3>
-              <p>업데이트를 위해 Xcrew 정보를 입력해주세요.</p>
+              <h3>XROIS 정보 필요</h3>
+              <p>업데이트를 위해 XROIS 정보를 입력해주세요.</p>
               
               <div style="margin-bottom: 1rem;">
                   <input v-model="empName" type="text" placeholder="승무원 이름 (예: 홍길동)" style="margin-bottom: 0.5rem;" />
-                  <input v-model="xcrewPw" type="password" placeholder="Xcrew 비밀번호" @keyup.enter="confirmPassword" autofocus />
+                  <input v-model="xcrewPw" type="password" placeholder="XROIS 비밀번호" @keyup.enter="confirmPassword" autofocus />
               </div>
               
               <div class="modal-actions">
