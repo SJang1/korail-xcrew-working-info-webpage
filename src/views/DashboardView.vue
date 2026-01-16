@@ -433,7 +433,7 @@ const fetchTrainsForDia = async () => {
 
     segments.forEach((seg: any) => {
         const no = seg.trnNo || '';
-        if (no && no !== '9999' && !no.startsWith('K')) {
+        if (no && no !== '9999' && no !== 'K') {
             const trnDate = calculateSegmentDate(seg.dptTm || seg.depTm, baseDate, runDtDv);
             const key = `${no}_${trnDate}`;
             if (!seen.has(key)) {
@@ -688,7 +688,7 @@ const handleUpdatePassword = async () => {
                                    <span v-if="seg.trnNo" class="badge">#{{ seg.trnNo }}</span>
                                    <span v-if="seg.pjtDst && seg.pjtDst !== '0.0'" class="badge">{{ seg.pjtDst }} km</span>
                                    
-                                   <a v-if="seg.trnNo && seg.trnNo !== '9999' && !seg.trnNo.startsWith('K')" 
+                                   <a v-if="seg.trnNo && seg.trnNo !== '9999' && seg.trnNo !== 'K'" 
                                       :href="`https://nxlogis.kr/?act=SearchTrainInfo&q=${seg.trnNo}&d=${currentDate}`" 
                                       target="_blank" 
                                       class="nx-btn">
