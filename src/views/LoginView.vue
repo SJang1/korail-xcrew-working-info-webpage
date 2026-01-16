@@ -209,6 +209,16 @@ h1 {
     margin-bottom: 2rem;
     color: var(--color-text-primary);
 }
+h2 {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: var(--color-text-primary);
+}
+h3 {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: var(--color-text-primary);
+}
 
 .footer-links {
     text-align: center;
