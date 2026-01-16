@@ -176,6 +176,12 @@ const filteredDiaItems = computed(() => {
     return items;
 });
 
+const firstSegmentStartTime = computed(() => {
+    if (!todayDia.value) return null;
+    const segments = todayDia.value.data || todayDia.value.extrCrewDiaList || [];
+    return segments.length > 0 ? (segments[0].dptTm || segments[0].depTm) : null;
+});
+
 // Icons
 const getTaskIcon = (name: string) => {
     if (!name) return 'clock';
@@ -691,7 +697,7 @@ const handleUpdatePassword = async () => {
                                    <span v-if="seg.pjtDst && seg.pjtDst !== '0.0'" class="badge">{{ seg.pjtDst }} km</span>
                                    
                                    <a v-if="seg.trnNo && seg.trnNo !== '9999' && seg.trnNo !== 'K'" 
-                                      :href="`https://nxlogis.kr/?act=SearchTrainInfo&q=${seg.trnNo}&d=${currentDate}`" 
+                                      :href="`https://nxlogis.kr/?act=SearchTrainInfo&q=${seg.trnNo}&d=${calculateSegmentDate(seg.dptTm || seg.depTm, currentDate, firstSegmentStartTime)}`" 
                                       target="_blank" 
                                       class="nx-btn">
                                        NXLogis <svg style="width:12px;height:12px;margin-left:2px;display:inline-block;vertical-align:middle;" viewBox="0 0 24 24"><path fill="currentColor" d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z" /></svg>
