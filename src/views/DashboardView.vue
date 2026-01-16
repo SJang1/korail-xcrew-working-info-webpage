@@ -626,6 +626,7 @@ const handleUpdatePassword = async () => {
 
     <main>
       <p v-if="error" class="error">{{ error }}</p>
+      <p v-if="message" class="success">{{ message }}</p>
 
       <!-- HOME: TODAY'S DIA -->
       <div v-if="view === 'home'" class="view-content">
@@ -829,19 +830,43 @@ const handleUpdatePassword = async () => {
 
       <!-- SETTINGS -->
       <div v-if="view === 'settings'" class="settings-panel card">
-        <h2>설정</h2>
-        <div class="form-group">
-            <label>승무원 이름</label>
-            <input v-model="empName" type="text" placeholder="홍길동" />
-            <p class="hint">사용자명은 서버에 저장됩니다.</p>
-        </div>
-        
-        <div class="form-group">
-            <label>XROIS 비밀번호 (브라우저에 저장)</label>
-            <input v-model="xcrewPw" type="password" placeholder="브라우저 캐시에 저장됩니다" />
-            <p class="hint">비밀번호는 서버에 저장되지 않고, 사용자의 브라우저에만 저장됩니다.</p>
-        </div>
-        
+          <h2>설정</h2>
+          
+          <div class="form-section">
+              <h3>프로필 정보</h3>
+              <div class="form-group">
+                  <label>승무원 이름</label>
+                  <input v-model="empName" type="text" placeholder="홍길동" @blur="handleUpdateName" />
+                  <p class="hint">XROIS 업데이트 시 사용하는 이름입니다. 입력란에서 포커스가 벗어나면 자동으로 저장됩니다.</p>
+              </div>
+              
+              <div class="form-group">
+                  <label>XROIS 비밀번호</label>
+                  <input v-model="xcrewPw" type="password" placeholder="브라우저 캐시에 저장됩니다" />
+                  <p class="hint">업데이트 시 필요한 XROIS 비밀번호입니다. 이 정보는 서버에 저장되지 않고, 사용자의 브라우저에만 저장됩니다.</p>
+              </div>
+          </div>
+
+          <div class="form-section">
+              <h3>비밀번호 변경</h3>
+              <form @submit.prevent="handleUpdatePassword">
+                  <div class="form-group">
+                      <label>현재 앱 비밀번호</label>
+                      <input v-model="currentPassword" type="password" required />
+                  </div>
+                  <div class="form-group">
+                      <label>새 앱 비밀번호</label>
+                      <input v-model="newPassword" type="password" required />
+                  </div>
+                  <div class="form-group">
+                      <label>새 앱 비밀번호 확인</label>
+                      <input v-model="newPasswordConfirm" type="password" required />
+                  </div>
+                  <button type="submit" class="button-primary" :disabled="loading">
+                      {{ loading ? '변경 중...' : '비밀번호 변경' }}
+                  </button>
+              </form>
+          </div>
       </div>
 
       <div v-if="loading" class="loading-overlay">
@@ -1180,8 +1205,15 @@ nav a.active { background: #e3f2fd; color: #1976d2; }
 .modal-actions button.primary { background: #1976d2; color: white; border: none; }
 
 .error { color: #c53030; background: #fff5f5; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+.success { color: #2f855a; background: #f0fff4; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
 .empty-state { text-align: center; padding: 2rem; color: #a0aec0; }
 .raw-details { margin-top: 2rem; border-top: 1px solid #eee; padding-top: 1rem; }
 .raw-details summary { cursor: pointer; color: #718096; font-size: 0.9rem; }
 pre { background: #f8f9fa; padding: 1rem; border-radius: 8px; font-size: 0.8rem; overflow: auto; text-align: left; }
+.form-section { margin-bottom: 2rem; border-bottom: 1px solid #eee; padding-bottom: 1rem; }
+.form-section:last-of-type { border-bottom: none; }
+.form-section h3 { margin-top: 0; margin-bottom: 1.5rem; color: #333; }
+.button-primary { background: #1976d2; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%; font-size: 1rem; }
+.button-primary:disabled { background: #7faddb; cursor: not-allowed; }
+.hint { font-size: 0.8rem; color: #666; margin-top: 0.5rem; }
 </style>
