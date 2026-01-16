@@ -25,11 +25,7 @@ watch(xcrewPw, (newVal) => {
 });
 
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
-    const newOptions = {
-        ...options,
-        credentials: 'same-origin'
-    };
-    const res = await fetch(url, newOptions);
+    const res = await fetch(url, options);
     
     if (res.status === 401) {
         logout(); // Force logout on 401
@@ -626,7 +622,7 @@ const forceReload = () => {
     <header>
       <div class="user-info">
         <h3>코레일 승무원 정보</h3>
-        <span>ID: {{ appUser }}<br />이름: {{ empName || '이름 없음' }}</span>
+        <span>ID: {{ appUser }} ({{ empName || '이름 없음' }})</span>
       </div>
       <nav>
         <a href="#" :class="{ active: view === 'home' }" @click.prevent="view = 'home'">Dia</a>
