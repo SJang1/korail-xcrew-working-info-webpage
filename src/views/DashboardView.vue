@@ -616,7 +616,7 @@ const handleUpdatePassword = async () => {
 };
 
 const forceReload = () => {
-    window.location.reload(true); // true to force reload from the server, bypassing cache
+    (window.location as any).reload(true); // true to force reload from the server, bypassing cache
 };
 
 </script>
