@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 
 const username = ref('');
 const password = ref('');
+const passwordConfirm = ref('');
 const xcrewPassword = ref('');
 const error = ref('');
 const isRegistering = ref(false);
@@ -13,6 +14,13 @@ const router = useRouter();
 const handleSubmit = async () => {
   error.value = '';
   loading.value = true;
+  
+  if (isRegistering.value && password.value !== passwordConfirm.value) {
+      error.value = '비밀번호가 일치하지 않습니다.';
+      loading.value = false;
+      return;
+  }
+
   const endpoint = isRegistering.value ? '/api/auth/register' : '/api/auth/login';
   
   const payload: any = { username: username.value, password: password.value };
@@ -71,6 +79,11 @@ const handleSubmit = async () => {
         <p class="hint">XROIS 비밀번호와 동기화 되지 않는 단독 비밀번호입니다.<br />분실 시 계정 삭제 (관리자 요청) 후 재가입이 필요합니다.</p>
       </div>
       
+      <div v-if="isRegistering" class="form-group">
+          <label>앱 비밀번호 재입력</label>
+          <input v-model="passwordConfirm" type="password" required />
+      </div>
+
       <div v-if="isRegistering" class="form-group">
           <label>XROIS 비밀번호 (인증용)</label>
           <input v-model="xcrewPassword" type="password" required />
