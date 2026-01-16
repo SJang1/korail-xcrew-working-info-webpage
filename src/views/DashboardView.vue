@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import HelpPopupOnLogin from '@/components/HelpPopupOnLogin.vue';
 
 const router = useRouter();
 const appUser = ref('');
@@ -9,6 +10,7 @@ const appUser = ref('');
 const xcrewPw = ref('');
 const empName = ref('');
 const showPasswordPrompt = ref(false);
+const showHelpPopup = ref(false);
 const pendingAction = ref<(() => Promise<void>) | null>(null);
 
 // Watch for changes to sync to localStorage
@@ -38,6 +40,7 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
 
 // State
 const view = ref<'home' | 'monthly' | 'settings'>('home');
+const todayDate = ref(new Date().toISOString().slice(0, 10).replace(/-/g, '')); // Today's YYYYMMDD
 const currentDate = ref(new Date().toISOString().slice(0, 10).replace(/-/g, '')); // Today's YYYYMMDD
 const viewDate = ref(new Date()); // For Calendar Navigation
 
@@ -76,6 +79,13 @@ onMounted(async () => {
     return;
   }
   appUser.value = user;
+
+  // Show help popup on first visit
+  const hasSeenHelp = localStorage.getItem('hasSeenHelp');
+  if (!hasSeenHelp) {
+      showHelpPopup.value = true;
+      localStorage.setItem('hasSeenHelp', 'true');
+  }
 
   // Load cached settings
   xcrewPw.value = localStorage.getItem('xcrew_pw') || '';
@@ -218,7 +228,7 @@ const calendarGrid = computed(() => {
             dateStr: dateStr,
             isPadding: false,
             data: scheduleItem,
-            isToday: dateStr === currentDate.value
+            isToday: dateStr === todayDate.value
         });
     }
     
@@ -498,7 +508,7 @@ const renderStationTime = (timeStr: string | null, delay: number | null): { orig
     <header>
       <div class="user-info">
         <h3>코레일 승무원 정보</h3>
-        <span>ID: {{ appUser }}</span>
+        <span>ID: {{ appUser }}<br />이름: {{ empName || '이름 없음' }}</span>
       </div>
       <nav>
         <a href="#" :class="{ active: view === 'home' }" @click.prevent="view = 'home'">Dia</a>
@@ -743,6 +753,9 @@ const renderStationTime = (timeStr: string | null, delay: number | null): { orig
             </div>
           </div>
       </div>
+
+      <!-- HOW-TO-USE POPUP -->
+      <HelpPopupOnLogin v-model="showHelpPopup" />
     </main>
   </div>
 </template>
