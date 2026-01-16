@@ -61,20 +61,20 @@ const handleSubmit = async () => {
     <h1>{{ isRegistering ? '회원가입' : '로그인' }}</h1>
     <form @submit.prevent="handleSubmit">
       <div class="form-group">
-        <label>{{ isRegistering ? 'Xcrew ID (사용자 ID)' : '사용자 ID' }}</label>
+        <label>{{ isRegistering ? '엑스로이스 ID (사용자 ID)' : '사용자 ID' }}</label>
         <input v-model="username" type="text" required />
-        <p class="hint">Xcrew 로그인에 사용하는 ID입니다. 이 웹사이트의 ID로 동일하게 사용됩니다.</p>
+        <p class="hint">엑스로이스 로그인에 사용하는 ID입니다. 이 웹사이트의 ID로 동일하게 사용됩니다.</p>
       </div>
       <div class="form-group">
         <label>앱 비밀번호 (로그인용)</label>
         <input v-model="password" type="password" required />
-        <p class="hint">Xcrew 비밀번호와 동일하여도 됩니다. Xcrew 비밀번호와 동기화 되지 않습니다.</p>
+        <p class="hint">엑스로이스 비밀번호와 동일하여도 됩니다. 엑스로이스 비밀번호와 동기화 되지 않습니다.</p>
       </div>
       
       <div v-if="isRegistering" class="form-group">
-          <label>Xcrew 비밀번호 (인증용)</label>
+          <label>엑스로이스 비밀번호 (인증용)</label>
           <input v-model="xcrewPassword" type="password" required />
-          <p class="hint">Xcrew 계정 인증을 위해 사용되며, 서버에 저장되지 않습니다.</p>
+          <p class="hint">엑스로이스 계정 인증을 위해 사용되며, 서버에 저장되지 않습니다.</p>
       </div>
       
       <div class="actions">
