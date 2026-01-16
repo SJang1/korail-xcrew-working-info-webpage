@@ -28,16 +28,74 @@ export default {
             }
 
             // --- Middleware: Verify Auth for Protected Routes ---
-            if (path.startsWith("/api/xcrew/") || path.startsWith("/api/train")) {
+            if (path.startsWith("/api/xcrew/") || path.startsWith("/api/train") || path.startsWith("/api/user")) {
                 const secret = await env.JWT_SECRET.get() || "default-dev-secret-change-me";
                 const username = await verifySession(env.KORAIL_XCREW_SESSION_KV, request, secret);
                 
                 if (!username) {
                     return new Response("Unauthorized: Invalid or expired session", { status: 401, headers: corsHeaders });
                 }
+
+                // Attach username to request for later use, maybe via a context object or headers if needed
+                // For this simple case, we'll just re-verify inside user endpoints for clarity
             }
 
             try {
+                // --- User Management Endpoints ---
+                if (path === "/api/user/profile" && (method === "GET" || method === "POST")) {
+                    const secret = await env.JWT_SECRET.get() || "default-dev-secret-change-me";
+                    const username = await verifySession(env.KORAIL_XCREW_SESSION_KV, request, secret);
+                    if (!username) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+
+                    if (method === "GET") {
+                        const user = await env.DB.prepare("SELECT username, name FROM users WHERE username = ?").bind(username).first();
+                        if (!user) return new Response("User not found", { status: 404, headers: corsHeaders });
+                        return Response.json({ success: true, data: { name: user.name } }, { headers: corsHeaders });
+                    }
+
+                    if (method === "POST") {
+                        const { name } = await request.json() as any;
+                        if (typeof name !== 'string') return new Response("Invalid name", { status: 400, headers: corsHeaders });
+
+                        await env.DB.prepare("UPDATE users SET name = ? WHERE username = ?")
+                            .bind(name, username)
+                            .run();
+                        
+                        return Response.json({ success: true, message: "Profile updated" }, { headers: corsHeaders });
+                    }
+                }
+
+                if (path === "/api/user/password" && method === "POST") {
+                    const secret = await env.JWT_SECRET.get() || "default-dev-secret-change-me";
+                    const username = await verifySession(env.KORAIL_XCREW_SESSION_KV, request, secret);
+                    if (!username) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+
+                    const { currentPassword, newPassword } = await request.json() as any;
+                    if (!currentPassword || !newPassword) return new Response("Missing fields", { status: 400, headers: corsHeaders });
+
+                    // 1. Verify current password
+                    const user = await env.DB.prepare("SELECT password_hash FROM users WHERE username = ?").bind(username).first();
+                    if (!user) return new Response("User not found", { status: 404, headers: corsHeaders });
+
+                    const currentHashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(currentPassword));
+                    const currentHashHex = Array.from(new Uint8Array(currentHashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+                    if (user.password_hash !== currentHashHex) {
+                        return new Response("Invalid current password", { status: 403, headers: corsHeaders });
+                    }
+
+                    // 2. Hash and update to new password
+                    const newHashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(newPassword));
+                    const newHashHex = Array.from(new Uint8Array(newHashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+                    await env.DB.prepare("UPDATE users SET password_hash = ? WHERE username = ?")
+                        .bind(newHashHex, username)
+                        .run();
+                    
+                    return Response.json({ success: true, message: "Password updated successfully" }, { headers: corsHeaders });
+                }
+
+
                 // --- Auth Endpoints (D1) ---
                 
                 if (path === "/api/auth/register" && method === "POST") {
@@ -104,7 +162,7 @@ export default {
 
                      return Response.json({ 
                          success: true, 
-                         user: { username: user.username },
+                         user: { username: user.username, name: user.name },
                          token: token
                      }, { headers: corsHeaders });
                 }

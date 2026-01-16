@@ -13,10 +13,13 @@ const showPasswordPrompt = ref(false);
 const showHelpPopup = ref(false);
 const pendingAction = ref<(() => Promise<void>) | null>(null);
 
+// Settings Page State
+const message = ref('');
+const currentPassword = ref('');
+const newPassword = ref('');
+const newPasswordConfirm = ref('');
+
 // Watch for changes to sync to localStorage
-watch(empName, (newVal) => {
-    if (newVal) localStorage.setItem('xcrew_name', newVal);
-});
 watch(xcrewPw, (newVal) => {
     if (newVal) localStorage.setItem('xcrew_pw', newVal);
 });
@@ -110,16 +113,28 @@ onMounted(async () => {
 
   // Load cached settings
   xcrewPw.value = localStorage.getItem('xcrew_pw') || '';
-  empName.value = localStorage.getItem('xcrew_name') || '';
+  // empName is now loaded from profile
 
   // Initialize view from hash
   updateViewFromHash();
   window.addEventListener('hashchange', updateViewFromHash);
 
   // Initial Load
+  await loadUserProfile();
   await loadDataFromCache(); // Loads today's Dia
   await loadScheduleForViewDate(); // Loads this month's schedule
 });
+
+const loadUserProfile = async () => {
+    try {
+        const profile = await fetchWithAuth('/api/user/profile');
+        if (profile.success && profile.data) {
+            empName.value = profile.data.name || '';
+        }
+    } catch (e) {
+        console.error("Failed to load user profile", e);
+    }
+};
 
 // Clean up listener (optional, but good practice if component unmounts)
 // onUnmounted(() => window.removeEventListener('hashchange', updateViewFromHash));
@@ -533,6 +548,65 @@ const getApiStationName = (trainNo: string, segTime: string, type: 'departure' |
     return stop ? stop.stationName : '';
 };
 
+const handleUpdateName = async () => {
+    message.value = '';
+    error.value = '';
+    try {
+        const res = await fetchWithAuth('/api/user/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: empName.value })
+        });
+        if (res.success) {
+            message.value = "이름이 성공적으로 업데이트되었습니다.";
+        } else {
+            throw new Error(res.message || "이름 업데이트 실패");
+        }
+    } catch (e: any) {
+        error.value = e.message;
+    }
+};
+
+const handleUpdatePassword = async () => {
+    message.value = '';
+    error.value = '';
+    if (newPassword.value !== newPasswordConfirm.value) {
+        error.value = "새 비밀번호가 일치하지 않습니다.";
+        return;
+    }
+    if (!currentPassword.value || !newPassword.value) {
+        error.value = "모든 비밀번호 필드를 입력해주세요.";
+        return;
+    }
+
+    loading.value = true;
+    try {
+        const res = await fetchWithAuth('/api/user/password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                currentPassword: currentPassword.value,
+                newPassword: newPassword.value
+            })
+        });
+        
+        const data = await res; // res is already parsed json from fetchWithAuth
+        if (data.success) {
+            message.value = "비밀번호가 성공적으로 변경되었습니다.";
+            // Clear fields
+            currentPassword.value = '';
+            newPassword.value = '';
+            newPasswordConfirm.value = '';
+        } else {
+            throw new Error(data.message || "비밀번호 변경 실패");
+        }
+    } catch (e: any) {
+        error.value = e.message;
+    } finally {
+        loading.value = false;
+    }
+};
+
 </script>
 
 <template>
@@ -759,12 +833,15 @@ const getApiStationName = (trainNo: string, segTime: string, type: 'departure' |
         <div class="form-group">
             <label>승무원 이름</label>
             <input v-model="empName" type="text" placeholder="홍길동" />
+            <p class="hint">사용자명은 서버에 저장됩니다.</p>
         </div>
+        
         <div class="form-group">
             <label>XROIS 비밀번호 (브라우저에 저장)</label>
             <input v-model="xcrewPw" type="password" placeholder="브라우저 캐시에 저장됩니다" />
+            <p class="hint">비밀번호는 서버에 저장되지 않고, 사용자의 브라우저에만 저장됩니다.</p>
         </div>
-        <p class="hint">비밀번호는 서버에 저장되지 않고, 사용자의 브라우저에만 저장됩니다.</p>
+        
       </div>
 
       <div v-if="loading" class="loading-overlay">
