@@ -159,7 +159,7 @@ export default {
                      const secret = await env.JWT_SECRET.get() || "default-dev-secret-change-me";
                      const token = await createSession(env.KORAIL_XCREW_SESSION_KV, user.username as string, secret);
  
-                     const cookie = `auth_token=${token}; Path=/; Expires=${new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toUTCString()}; HttpOnly; Secure; SameSite=Strict`;
+                     const cookie = `auth_token=${token}; Path=/; Expires=${new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toUTCString()}; HttpOnly; Secure; SameSite=Strict`;
  
                      const headers = { ...corsHeaders, "Set-Cookie": cookie };
  
