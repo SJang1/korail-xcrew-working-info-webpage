@@ -118,7 +118,7 @@ const handleSubmit = async () => {
 
 <style scoped>
 .login-container {
-  max-width: 400px;
+  max-width: 1000px;
   margin: 2rem auto;
   padding: 2rem;
   border: 1px solid var(--color-border);
