@@ -64,7 +64,9 @@ const handleSubmit = async () => {
 
 <template>
   <div class="login-container">
-    <h1>{{ isRegistering ? '회원가입' : '로그인' }}</h1>
+    <h1>코레일 승무원 승무표 정보 외부 시스템</h1>
+    <h2>{{ isRegistering ? '회원가입' : '로그인' }}</h2>
+    <h3>Made by <a href="https://github.com/SJang1">SJang1</a></h3>
     <form @submit.prevent="handleSubmit">
       <div class="form-group">
         <label>{{ isRegistering ? 'XROIS ID (사용자 ID)' : '사용자 ID' }}</label>
