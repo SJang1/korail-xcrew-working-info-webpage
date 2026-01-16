@@ -53,7 +53,6 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
             if (text.trim().startsWith('<!DOCTYPE html>') || text.trim().startsWith('<html>')) {
                 // This is likely a login page, so the session is expired.
                 console.error("Received HTML instead of JSON, logging out.");
-                logout();
                 throw new Error("Session expired. Please log in again.");
             }
         }
