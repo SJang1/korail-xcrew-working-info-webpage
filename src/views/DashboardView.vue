@@ -768,7 +768,14 @@ const handleUpdatePassword = async () => {
                                </div>
                            </div>
                        </div>
-                   <div v-else class="empty-state">세부 운행정보가 없습니다.</div>
+                   <div v-else class="empty-state">
+                       <span v-if="showOnlyTrains">
+                           표시할 열차 운행정보가 없습니다. <br />'전체' 버튼을 눌러 열차 외 다른 일정을 확인하실 수 있습니다.
+                       </span>
+                       <span v-else>
+                           세부 운행정보가 없습니다.
+                       </span>
+                   </div>
               </div>
               <details class="raw-details">
                   <summary>Raw JSON 보기</summary>
