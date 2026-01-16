@@ -4,14 +4,13 @@
       <h3>사용 방법 안내</h3>
       <div class="help-content">
         <p><strong>환영합니다!</strong><br>
-          - 이 서비스는 Korail 승무원 및 Xcrew 근무 정보를 편리하게 확인할 수 있도록 도와줍니다.<br>
           - <strong>홈 화면에 추가</strong>를 통해 앱처럼 사용하고 빠르게 접근할 수 있습니다.</p>
-        <p><strong>업데이트 방법:</strong><br>
-          - <strong>Monthly 탭에서 "업데이트" 버튼을 눌러주세요.</strong> Monthly 탭에 현재 표시된 달력년월의 데이터가 업데이트됩니다.</p>
-        <p><strong>다이아 업데이트 방법:</strong><br>
-          - Monthly 탭의 "업데이트" 진행 시 자동으로 업데이트됩니다. 특정 하루의 다이아만 업데이트하는 것은 현재 불가능합니다.</p>
-        <p><strong>승무원, Xcrew 설정:</strong><br>
-          - Settings 탭에서 설정을 변경하실 수 있습니다.</p>
+        <p><strong>일정 업데이트 방법:</strong><br>
+          - <strong>Monthly 탭에서 "업데이트" 버튼을 눌러주세요.</strong> Monthly 탭에 현재 표시된 달력년월의 데이터가 업데이트됩니다.<br>
+          - 다이아도 동시에 업데이트되며, 별도로 업데이트하실 필요 없습니다.</p>
+        <p><strong>승무원, XROIS 설정:</strong><br>
+          - Settings 탭에서 설정을 변경하실 수 있습니다.<br>
+          - 반드시 XRIOS 설정값을 정확히 입력해 주셔야 합니다. (성함, XROIS 비밀번호)</p>
         <p><strong>전동차:</strong><br>
           - 아직 전동차 운행정보는 실시간 정보가 제공되지 않습니다. 일반열차 및 화물열차에 대해서만 현재 실시간 정보 조회가 됩니다. 정보제공처: NXLogis</p>
         <p><strong>경고(주의):</strong><br>
