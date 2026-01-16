@@ -349,13 +349,14 @@ const requestUpdate = async (action: 'dia' | 'monthly') => {
 const confirmPassword = async () => {
     // Validate
     if (pendingAction.value) {
-        // If we needed name (implied by logic above, though hard to know exact context here without storing it, 
-        // but simple check: if name is still empty and we are doing schedule, it will fail.
-        // We rely on the inputs being filled.
-        
-        if (!xcrewPw.value) return; // minimal check
-        
+        if (!xcrewPw.value || !empName.value) return;
+
         showPasswordPrompt.value = false;
+        
+        // Save the name to the database
+        await handleUpdateName();
+
+        // Execute the original action
         await pendingAction.value();
         pendingAction.value = null;
     }
