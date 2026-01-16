@@ -1,5 +1,5 @@
 import { KorailClient, TrainClient } from './korail';
-import { createSession, destroySession } from './auth';
+import { createSession, destroySession, verifySession } from './auth';
 import { mapConcurrent, generateColor } from './utils';
 
 interface Env {
@@ -25,6 +25,16 @@ export default {
 
             if (method === "OPTIONS") {
                 return new Response(null, { headers: corsHeaders });
+            }
+
+            // --- Middleware: Verify Auth for Protected Routes ---
+            if (path.startsWith("/api/xcrew/") || path.startsWith("/api/train")) {
+                const secret = await env.JWT_SECRET.get() || "default-dev-secret-change-me";
+                const username = await verifySession(env.KORAIL_XCREW_SESSION_KV, request, secret);
+                
+                if (!username) {
+                    return new Response("Unauthorized: Invalid or expired session", { status: 401, headers: corsHeaders });
+                }
             }
 
             try {
@@ -152,7 +162,7 @@ export default {
                         return acc;
                     }, {});
                     
-                    colorMap['비상'] = 'hsl(0, 1%, 52%)';
+                    colorMap['비상'] = 'hsl(0, 0%, 94%)';
 
                     return Response.json({ 
                         success: true, 
@@ -278,7 +288,7 @@ export default {
                             return acc;
                         }, {});
 
-                        colorMap['비상'] = 'hsl(0, 1%, 52%)';
+                        colorMap['비상'] = 'hsl(0, 0%, 94%)';
 
                         // 5. Save Enriched Schedule to D1
                         await env.DB.prepare("INSERT OR REPLACE INTO schedules (username, date, data) VALUES (?, ?, ?)")

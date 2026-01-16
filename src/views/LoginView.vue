@@ -103,39 +103,55 @@ const handleSubmit = async () => {
   max-width: 400px;
   margin: 2rem auto;
   padding: 2rem;
-  border: 1px solid #ccc;
-  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-bg-card);
+  box-shadow: var(--shadow-md);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 .form-group {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
 }
 .form-group label {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 500;
+  color: var(--color-text-primary);
 }
 .form-group input {
   width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
   box-sizing: border-box;
+  background: var(--color-bg-input);
+  color: var(--color-text-primary);
+  font-size: 1rem;
+}
+.form-group input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 .actions {
   display: flex;
   justify-content: center;
-  margin-top: 1.5rem;
+  margin-top: 2rem;
 }
 button {
-    background: #0066cc;
-    color: white;
+    background: var(--color-primary);
+    color: var(--color-primary-content);
     border: none;
     padding: 0.75rem 1.5rem;
-    border-radius: 4px;
+    border-radius: 8px;
     font-size: 1rem;
     cursor: pointer;
     width: 100%;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+button:hover:not(:disabled) {
+    background: var(--color-primary-hover);
 }
 button:disabled {
     opacity: 0.7;
@@ -143,24 +159,34 @@ button:disabled {
 }
 .switch-link {
     text-align: center;
-    margin-top: 1rem;
+    margin-top: 1.5rem;
 }
 .switch-link a {
-    color: #666;
+    color: var(--color-text-secondary);
     text-decoration: none;
     font-size: 0.9rem;
+    transition: color 0.2s;
+}
+.switch-link a:hover {
+    color: var(--color-primary);
 }
 .hint {
     font-size: 0.8rem;
-    color: #666;
-    margin-top: 0.25rem;
+    color: var(--color-text-muted);
+    margin-top: 0.5rem;
 }
 .error {
-  color: #d32f2f;
+  color: var(--color-error);
   margin-top: 1rem;
-  background: #ffebee;
-  padding: 0.5rem;
-  border-radius: 4px;
+  background: rgba(239, 68, 68, 0.1);
+  padding: 0.75rem;
+  border-radius: 8px;
   text-align: center;
+  font-size: 0.9rem;
+}
+h1 {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: var(--color-text-primary);
 }
 </style>
