@@ -397,25 +397,27 @@ const fetchScheduleRemote = async () => {
   }
 };
 
-const calculateSegmentDate = (dptTm: string, baseDate: string, runDtDv: any[]) => {
-    if (!dptTm || !runDtDv || runDtDv.length === 0) return baseDate;
-    
-    const hour = dptTm.slice(0, 2);
-    const key = `diaRunDtDvCd${hour}`;
-    const offset = runDtDv[0][key] || 0;
-    
-    if (offset === 0) return baseDate;
-    
-    // Calculate new date using UTC to be safe
-    const year = parseInt(baseDate.slice(0, 4));
-    const month = parseInt(baseDate.slice(4, 6)) - 1;
-    const day = parseInt(baseDate.slice(6, 8));
-    const d = new Date(Date.UTC(year, month, day + offset));
-    
-    const y = d.getUTCFullYear();
-    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
-    const D = String(d.getUTCDate()).padStart(2, '0');
-    return `${y}${m}${D}`;
+const calculateSegmentDate = (dptTm: string, baseDate: string, firstSegmentStartTime: string | null): string => {
+    if (!dptTm || !firstSegmentStartTime) {
+        return baseDate;
+    }
+
+    // Heuristic: if a segment's start time is before the very first segment's start time,
+    // it's on the next day. Times are strings like "1708", "0531".
+    if (parseInt(dptTm, 10) < parseInt(firstSegmentStartTime, 10)) {
+        // It's the next day, add 1 to baseDate
+        const year = parseInt(baseDate.slice(0, 4));
+        const month = parseInt(baseDate.slice(4, 6)) - 1;
+        const day = parseInt(baseDate.slice(6, 8));
+        const d = new Date(Date.UTC(year, month, day + 1));
+        
+        const y = d.getUTCFullYear();
+        const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const D = String(d.getUTCDate()).padStart(2, '0');
+        return `${y}${m}${D}`;
+    }
+
+    return baseDate;
 };
 
 const fetchTrainsForDia = async () => {
@@ -423,9 +425,10 @@ const fetchTrainsForDia = async () => {
     if (!todayDia.value) return;
     
     const segments = todayDia.value.data || todayDia.value.extrCrewDiaList || [];
-    const runDtDv = todayDia.value.runDtDv || [];
     const baseDate = currentDate.value;
     
+    const firstSegmentStartTime = segments.length > 0 ? (segments[0].dptTm || segments[0].depTm) : null;
+
     // We want to fetch unique train/date combinations
     const fetchTasks: { no: string, date: string }[] = [];
     const seen = new Set<string>();
@@ -433,7 +436,7 @@ const fetchTrainsForDia = async () => {
     segments.forEach((seg: any) => {
         const no = seg.trnNo || '';
         if (no && no !== '9999' && no !== 'K') {
-            const trnDate = calculateSegmentDate(seg.dptTm || seg.depTm, baseDate, runDtDv);
+            const trnDate = calculateSegmentDate(seg.dptTm || seg.depTm, baseDate, firstSegmentStartTime);
             const key = `${no}_${trnDate}`;
             if (!seen.has(key)) {
                 seen.add(key);
