@@ -615,6 +615,10 @@ const handleUpdatePassword = async () => {
     }
 };
 
+const forceReload = () => {
+    window.location.reload(true); // true to force reload from the server, bypassing cache
+};
+
 </script>
 
 <template>
@@ -883,6 +887,14 @@ const handleUpdatePassword = async () => {
                       {{ loading ? '변경 중...' : '비밀번호 변경' }}
                   </button>
               </form>
+          </div>
+
+          <div class="form-section">
+              <h3>도구</h3>
+              <button class="button-primary" @click="forceReload">
+                  강제 새로고침 (캐시 지우기)
+              </button>
+              <p class="hint">문제가 발생했거나 최신 데이터가 표시되지 않을 때 사용하세요.</p>
           </div>
       </div>
 
