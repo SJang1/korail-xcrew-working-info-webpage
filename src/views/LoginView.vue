@@ -29,14 +29,12 @@ const handleSubmit = async () => {
     
     if (!res.ok) {
       const text = await res.text();
-      throw new Error(text || 'Action failed');
+      throw new Error(text || '요청 실패');
     }
     
     if (isRegistering.value) {
-      // After register, auto login or ask to login
       isRegistering.value = false;
-      error.value = 'Registration verified & successful! Please login.';
-      // Optionally clear passwords
+      error.value = '회원가입 성공! 로그인 해주세요.';
       xcrewPassword.value = '';
       password.value = '';
       return;
@@ -48,10 +46,6 @@ const handleSubmit = async () => {
       if (data.token) {
           localStorage.setItem('auth_token', data.token);
       }
-      // Pre-fill xcrew credentials in dashboard if desired? 
-      // User requested "user will input credentials whenever user requests updates, and save that credentionals on browser;s cache"
-      // So we might not auto-save xcrew password here, but we could hint it.
-      // For now, let's just let them configure it in dashboard settings to be explicit.
       router.push('/dashboard');
     }
   } catch (e: any) {
@@ -64,37 +58,43 @@ const handleSubmit = async () => {
 
 <template>
   <div class="login-container">
-    <h1>{{ isRegistering ? 'Register' : 'Login' }}</h1>
+    <h1>{{ isRegistering ? '회원가입' : '로그인' }}</h1>
     <form @submit.prevent="handleSubmit">
       <div class="form-group">
-        <label>{{ isRegistering ? 'Xcrew ID (Username)' : 'Username' }}</label>
+        <label>{{ isRegistering ? 'Xcrew ID (사용자 ID)' : '사용자 ID' }}</label>
         <input v-model="username" type="text" required />
+        <p class="hint">Xcrew 로그인에 사용하는 ID입니다. 이 웹사이트의 ID로 동일하게 사용됩니다.</p>
       </div>
       <div class="form-group">
-        <label>App Password</label>
+        <label>앱 비밀번호 (로그인용)</label>
         <input v-model="password" type="password" required />
+        <p class="hint">Xcrew 비밀번호와 동일하여도 됩니다. Xcrew 비밀번호와 동기화 되지 않습니다.</p>
       </div>
       
       <div v-if="isRegistering" class="form-group">
-          <label>Xcrew Password (For Verification Only)</label>
+          <label>Xcrew 비밀번호 (인증용)</label>
           <input v-model="xcrewPassword" type="password" required />
-          <p class="hint">We use this to verify your employee status. It is NOT saved on our server.</p>
+          <p class="hint">Xcrew 계정 인증을 위해 사용되며, 서버에 저장되지 않습니다.</p>
       </div>
       
       <div class="actions">
         <button type="submit" :disabled="loading">
-            {{ loading ? 'Processing...' : (isRegistering ? 'Verify & Sign Up' : 'Login') }}
+            {{ loading ? '처리 중...' : (isRegistering ? '인증 및 회원가입' : '로그인') }}
         </button>
       </div>
       
       <div class="switch-link">
         <a href="#" @click.prevent="isRegistering = !isRegistering">
-          {{ isRegistering ? 'Already have an account? Login' : 'Need an account? Register' }}
+          {{ isRegistering ? '이미 계정이 있으신가요? 로그인' : '계정이 없으신가요? 회원가입' }}
         </a>
       </div>
       
       <p v-if="error" class="error">{{ error }}</p>
     </form>
+    
+    <div class="footer-links">
+        <router-link to="/privacy">개인정보 처리방침</router-link>
+    </div>
   </div>
 </template>
 
@@ -188,5 +188,20 @@ h1 {
     text-align: center;
     margin-bottom: 2rem;
     color: var(--color-text-primary);
+}
+
+.footer-links {
+    text-align: center;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+}
+.footer-links a {
+    color: var(--color-text-muted);
+    font-size: 0.8rem;
+    text-decoration: none;
+}
+.footer-links a:hover {
+    color: var(--color-primary);
 }
 </style>

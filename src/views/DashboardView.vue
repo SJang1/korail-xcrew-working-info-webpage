@@ -103,6 +103,31 @@ const filteredDiaItems = computed(() => {
         items = items.filter((item: any) => (item.trnNo && item.trnNo.trim() !== '') || (item.pjtHrDvNm && item.pjtHrDvNm.includes('준비')));
     }
     
+    // Filter: Hide Ended (simple: removes items that have ended if their current delay is non-positive)
+    if (hideEnded.value) {
+        const currentTime = new Date();
+        items = items.filter((item: any) => {
+            const trainNo = item.trnNo;
+            if (!trainNo || !trainInfos.value[trainNo] || !trainInfos.value[trainNo].found) return true; // Keep non-train items or items without live data
+
+            const info = trainInfos.value[trainNo].info;
+            if (!info || !info.arrivalTime) return true; // Keep if no arrival time or info
+
+            const [hours, minutes] = String(formatTime(info.arrivalTime)).split(':').map(Number);
+            if (hours === undefined || minutes === undefined || isNaN(hours) || isNaN(minutes)) return true; // Keep if time parsing fails
+
+            const arrivalDate = new Date();
+            arrivalDate.setHours(hours, minutes, 0, 0);
+            // Adjust for delay if available from the train info (which contains delay)
+            if (info.delay) {
+                arrivalDate.setMinutes(arrivalDate.getMinutes() + info.delay);
+            }
+            
+            // If arrival is in the future, keep it.
+            return arrivalDate > currentTime;
+        });
+    }
+    
     return items;
 });
 
@@ -144,8 +169,14 @@ const changeDay = (delta: number) => {
     const month = parseInt(currentDate.value.slice(4, 6)) - 1;
     const day = parseInt(currentDate.value.slice(6, 8));
     
-    const d = new Date(year, month, day + delta);
-    currentDate.value = d.toISOString().slice(0, 10).replace(/-/g, '');
+    // Use UTC to prevent timezone shifts at midnight
+    const d = new Date(Date.UTC(year, month, day + delta));
+    
+    // Format to YYYYMMDD
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const D = String(d.getUTCDate()).padStart(2, '0');
+    currentDate.value = `${y}${m}${D}`;
 };
 
 // Watchers
@@ -334,12 +365,16 @@ const calculateSegmentDate = (dptTm: string, baseDate: string, runDtDv: any[]) =
     
     if (offset === 0) return baseDate;
     
-    // Calculate new date
+    // Calculate new date using UTC to be safe
     const year = parseInt(baseDate.slice(0, 4));
     const month = parseInt(baseDate.slice(4, 6)) - 1;
     const day = parseInt(baseDate.slice(6, 8));
-    const d = new Date(year, month, day + offset);
-    return d.toISOString().slice(0, 10).replace(/-/g, '');
+    const d = new Date(Date.UTC(year, month, day + offset));
+    
+    const y = d.getUTCFullYear();
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const D = String(d.getUTCDate()).padStart(2, '0');
+    return `${y}${m}${D}`;
 };
 
 const fetchTrainsForDia = async () => {
@@ -462,7 +497,7 @@ const renderStationTime = (timeStr: string | null, delay: number | null): { orig
   <div class="dashboard">
     <header>
       <div class="user-info">
-        <h3>Korail Crew Info</h3>
+        <h3>코레일 승무원 정보</h3>
         <span>ID: {{ appUser }}</span>
       </div>
       <nav>
@@ -490,18 +525,18 @@ const renderStationTime = (timeStr: string | null, delay: number | null): { orig
               <div class="dia-header">
                   <div class="dia-title-group">
                       <span class="dia-date">{{ formatDate(currentDate) }}</span>
-                      <span class="dia-no">No. {{ todayDia.extrCrewMgVO?.pdiaNo || 'N/A' }}</span>
+                      <span class="dia-no">번호. {{ todayDia.extrCrewMgVO?.pdiaNo || 'N/A' }}</span>
                   </div>
                   <div class="dia-controls">
-                      <div class="last-updated" v-if="trainLastUpdated">Updated: {{ trainLastUpdated }}</div>
+                      <div class="last-updated" v-if="trainLastUpdated">업데이트: {{ trainLastUpdated }}</div>
                       <button class="icon-btn" @click="fetchTrainsForDia" title="Refresh Train Info">
                           <svg style="width:20px;height:20px" viewBox="0 0 24 24"><path fill="currentColor" d="M17.65,6.35C16.2,4.9 14.21,4 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20C15.73,20 18.84,17.45 19.73,14H17.65C16.83,16.33 14.61,18 12,18A6,6 0 0,1 6,12A6,6 0 0,1 12,6C13.66,6 15.14,6.69 16.22,7.78L13,11H20V4L17.65,6.35Z" /></svg>
                       </button>
                   </div>
                   <div class="toggles-wrapper">
                       <div class="toggle-container">
-                          <button class="toggle-button" :class="{ active: showOnlyTrains }" @click="showOnlyTrains = true">Train Only</button>
-                          <button class="toggle-button" :class="{ active: !showOnlyTrains }" @click="showOnlyTrains = false">All</button>
+                          <button class="toggle-button" :class="{ active: showOnlyTrains }" @click="showOnlyTrains = true">열차만</button>
+                          <button class="toggle-button" :class="{ active: !showOnlyTrains }" @click="showOnlyTrains = false">전체</button>
                       </div>
                   </div>
               </div>
@@ -599,20 +634,20 @@ const renderStationTime = (timeStr: string | null, delay: number | null): { orig
                                            </div>
                                        </div>
                                    </template>
-                                   <span v-else-if="trainInfos[seg.trnNo].error" class="status-badge error">Error</span>
+                                   <span v-else-if="trainInfos[seg.trnNo].error" class="status-badge error">오류</span>
                                    <span v-else class="status-badge not-found">운행정보 없음</span>
                                </div>
                            </div>
                        </div>
-                   <div v-else class="empty-state">No detailed segment data found.</div>
+                   <div v-else class="empty-state">세부 운행정보가 없습니다.</div>
               </div>
               <details class="raw-details">
-                  <summary>View Raw JSON</summary>
+                  <summary>Raw JSON 보기</summary>
                   <pre>{{ JSON.stringify(todayDia, null, 2) }}</pre>
               </details>
           </div>
           <div v-else-if="!loading" class="empty-state card">
-              <p>No cached data for this date. Click "Update from Xcrew" to fetch.</p>
+              <p>해당 날짜의 캐시된 데이터가 없습니다. 월간 계획에서 업데이트를 진행해주세요.</p>
           </div>
       </div>
 
@@ -623,19 +658,19 @@ const renderStationTime = (timeStr: string | null, delay: number | null): { orig
               <h2>{{ calendarTitle }}</h2>
               <button class="nav-btn" @click="changeMonth(1)">&gt;</button>
               <button class="update-btn" @click="requestUpdate('monthly')" :disabled="loading" style="margin-left: auto;">
-                  Update
+                  업데이트
               </button>
           </div>
           
           <div class="calendar-wrapper card">
               <div class="weekdays-row">
-                  <div class="weekday">Sun</div>
-                  <div class="weekday">Mon</div>
-                  <div class="weekday">Tue</div>
-                  <div class="weekday">Wed</div>
-                  <div class="weekday">Thu</div>
-                  <div class="weekday">Fri</div>
-                  <div class="weekday">Sat</div>
+                  <div class="weekday">일</div>
+                  <div class="weekday">월</div>
+                  <div class="weekday">화</div>
+                  <div class="weekday">수</div>
+                  <div class="weekday">목</div>
+                  <div class="weekday">금</div>
+                  <div class="weekday">토</div>
               </div>
               
               <div class="calendar-grid">
@@ -668,44 +703,44 @@ const renderStationTime = (timeStr: string | null, delay: number | null): { orig
           </div>
           
           <div v-if="!loading && monthlySchedule.length === 0" class="empty-state">
-              <p>No data for this month. Click "Update" to fetch from Xcrew.</p>
+              <p>해당 월의 데이터가 없습니다. "업데이트" 버튼을 눌러주세요.</p>
           </div>
       </div>
 
       <!-- SETTINGS -->
       <div v-if="view === 'settings'" class="settings-panel card">
-        <h2>Settings</h2>
+        <h2>설정</h2>
         <div class="form-group">
-            <label>Employee Name</label>
+            <label>승무원 이름</label>
             <input v-model="empName" type="text" placeholder="홍길동" />
         </div>
         <div class="form-group">
-            <label>Xcrew Password (Cache)</label>
-            <input v-model="xcrewPw" type="password" placeholder="Saved in browser" />
+            <label>Xcrew 비밀번호 (브라우저에 저장)</label>
+            <input v-model="xcrewPw" type="password" placeholder="브라우저 캐시에 저장됩니다" />
         </div>
-        <p class="hint">Passwords are only saved in your browser's local storage.</p>
+        <p class="hint">비밀번호는 서버에 저장되지 않고, 사용자의 브라우저에만 저장됩니다.</p>
       </div>
 
       <div v-if="loading" class="loading-overlay">
           <div class="spinner"></div>
-          <p>Connecting to Xcrew...</p>
+          <p>Xcrew 서버와 통신 중...</p>
       </div>
 
       <!-- JIT PASSWORD PROMPT -->
       <div v-if="showPasswordPrompt" class="modal-overlay">
           <div class="modal-content prompt">
-              <h3>Xcrew Credentials Required</h3>
-              <p>Please enter your details to fetch updates.</p>
+              <h3>Xcrew 정보 필요</h3>
+              <p>업데이트를 위해 Xcrew 정보를 입력해주세요.</p>
               
               <div style="margin-bottom: 1rem;">
-                  <input v-model="empName" type="text" placeholder="Employee Name (e.g. 홍길동)" style="margin-bottom: 0.5rem;" />
-                  <input v-model="xcrewPw" type="password" placeholder="Xcrew Password" @keyup.enter="confirmPassword" autofocus />
+                  <input v-model="empName" type="text" placeholder="승무원 이름 (예: 홍길동)" style="margin-bottom: 0.5rem;" />
+                  <input v-model="xcrewPw" type="password" placeholder="Xcrew 비밀번호" @keyup.enter="confirmPassword" autofocus />
               </div>
               
               <div class="modal-actions">
-                  <button @click="showPasswordPrompt = false">Cancel</button>
-                  <button class="primary" @click="confirmPassword">Confirm</button>
-              </div>
+                  <button @click="showPasswordPrompt = false">취소</button>
+                  <button class="primary" @click="confirmPassword">확인</button>
+            </div>
           </div>
       </div>
     </main>
@@ -724,7 +759,7 @@ const renderStationTime = (timeStr: string | null, delay: number | null): { orig
     overflow-x: hidden;
 }
 header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 1rem; margin-bottom: 2rem; }
-.user-info h3 { margin: 0; }
+.user-info h3 { margin: 0; color: var(--color-text-primary); }
 nav a { margin-left: 1rem; text-decoration: none; color: #666; font-weight: 500; padding: 0.5rem; border-radius: 6px; }
 nav a.active { background: #e3f2fd; color: #1976d2; }
 
@@ -818,7 +853,8 @@ nav a.active { background: #e3f2fd; color: #1976d2; }
 
 /* CALENDAR STYLES */
 .calendar-header-controls { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
-.nav-btn { background: #f0f0f0; border: 1px solid #ddd; border-radius: 6px; padding: 0.5rem 1rem; cursor: pointer; font-weight: bold; }
+.calendar-header-controls h2 { color: var(--color-text-primary); margin: 0 auto; }
+.nav-btn { background: var(--color-bg-hover); border: 1px solid var(--color-border); border-radius: 6px; padding: 0.5rem 1rem; cursor: pointer; font-weight: bold; color: var(--color-text-primary); }
 .nav-btn:hover { background: #e0e0e0; }
 
 .calendar-wrapper { padding: 1rem; }
