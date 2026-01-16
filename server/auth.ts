@@ -45,16 +45,37 @@ export async function createSession(kv: KVNamespace, username: string, secret: s
 }
 
 export async function verifySession(kv: KVNamespace, request: Request, secret: string): Promise<string | null> {
-    const authHeader = request.headers.get("Authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return null;
+    let token: string | null = null;
+
+    // 1. Try to get token from cookie first
+    const cookieHeader = request.headers.get("Cookie");
+    if (cookieHeader) {
+        const cookies = cookieHeader.split(';').map(c => c.trim());
+        const authCookie = cookies.find(c => c.startsWith("auth_token="));
+        if (authCookie) {
+            token = authCookie.split("=")[1];
+        }
+    }
+
+    // 2. If no cookie, fall back to Authorization header
+    if (!token) {
+        const authHeader = request.headers.get("Authorization");
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+            token = authHeader.split(" ")[1];
+        }
+    }
+
+    if (!token) {
+        return null; // No token found in either cookie or header
     }
     
-    const token = authHeader.split(" ")[1];
-    
-    // 1. Verify Signature (Basic JWT Check)
+    // 3. Verify Signature (Basic JWT Check)
     try {
         const [headerB64, bodyB64, signatureB64] = token.split(".");
+        if (!headerB64 || !bodyB64 || !signatureB64) {
+            return null; // Invalid token format
+        }
+        
         const data = `${headerB64}.${bodyB64}`;
         const expectedSignature = await sign(data, secret);
         
@@ -62,13 +83,13 @@ export async function verifySession(kv: KVNamespace, request: Request, secret: s
             return null; // Invalid signature
         }
         
-        // 2. Decode payload to get username
+        // 4. Decode payload to get username
         const payload = JSON.parse(atob(bodyB64.replace(/-/g, '+').replace(/_/g, '/')));
         const username = payload.sub;
         
         if (!username) return null;
         
-        // 3. Verify against KV (Session Revocation Check)
+        // 5. Verify against KV (Session Revocation Check)
         const storedToken = await kv.get(username);
         if (storedToken !== token) {
             return null; // Token revoked or replaced
@@ -76,6 +97,7 @@ export async function verifySession(kv: KVNamespace, request: Request, secret: s
         
         return username;
     } catch (e) {
+        console.error("Token verification failed:", e);
         return null;
     }
 }

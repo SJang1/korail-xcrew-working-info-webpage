@@ -25,15 +25,7 @@ watch(xcrewPw, (newVal) => {
 });
 
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) throw new Error("No auth token found");
-    
-    const headers = {
-        ...options.headers,
-        'Authorization': `Bearer ${token}`
-    };
-    
-    const res = await fetch(url, { ...options, headers });
+    const res = await fetch(url, options);
     
     if (res.status === 401) {
         logout(); // Force logout on 401
@@ -492,7 +484,6 @@ const logout = async () => {
     } finally {
         // Always clear local storage and redirect
         localStorage.removeItem('app_user');
-        localStorage.removeItem('auth_token');
         router.push('/');
     }
 }

@@ -51,9 +51,6 @@ const handleSubmit = async () => {
     const data = await res.json();
     if (data.success) {
       localStorage.setItem('app_user', username.value);
-      if (data.token) {
-          localStorage.setItem('auth_token', data.token);
-      }
       sessionStorage.setItem('showHelpOnLoad', 'true');
       router.push('/dashboard');
     }

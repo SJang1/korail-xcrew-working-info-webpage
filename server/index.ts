@@ -158,12 +158,15 @@ export default {
                      // Use a default secret if env is missing (for dev safety, though should be set)
                      const secret = await env.JWT_SECRET.get() || "default-dev-secret-change-me";
                      const token = await createSession(env.KORAIL_XCREW_SESSION_KV, user.username as string, secret);
-
+ 
+                     const cookie = `auth_token=${token}; Path=/; Expires=${new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toUTCString()}; HttpOnly; Secure; SameSite=Strict`;
+ 
+                     const headers = { ...corsHeaders, "Set-Cookie": cookie };
+ 
                      return Response.json({ 
                          success: true, 
-                         user: { username: user.username, name: user.name },
-                         token: token
-                     }, { headers: corsHeaders });
+                         user: { username: user.username, name: user.name }
+                     }, { headers });
                 }
 
                 if (path === "/api/auth/logout" && method === "POST") {
@@ -171,8 +174,12 @@ export default {
                     if (authenticatedUsername) {
                         await destroySession(env.KORAIL_XCREW_SESSION_KV, authenticatedUsername);
                     }
+                    // Clear the cookie by setting an expiry date in the past
+                    const cookie = `auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Strict`;
+                    const headers = { ...corsHeaders, "Set-Cookie": cookie };
+                    
                     // Always return success, client will clear local storage regardless
-                    return Response.json({ success: true }, { headers: corsHeaders });
+                    return Response.json({ success: true }, { headers });
                 }
 
                 // --- Xcrew Proxy Endpoints ---
