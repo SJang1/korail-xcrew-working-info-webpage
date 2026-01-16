@@ -3,6 +3,9 @@
     <div class="modal-content">
       <h3>사용 방법 안내</h3>
       <div class="help-content">
+        <p><strong>환영합니다!</strong><br>
+          - 이 서비스는 Korail 승무원 및 Xcrew 근무 정보를 편리하게 확인할 수 있도록 도와줍니다.<br>
+          - <strong>홈 화면에 추가</strong>를 통해 앱처럼 사용하고 빠르게 접근할 수 있습니다.</p>
         <p><strong>업데이트 방법:</strong><br>
           - <strong>Monthly 탭에서 "업데이트" 버튼을 눌러주세요.</strong> Monthly 탭에 현재 표시된 달력년월의 데이터가 업데이트됩니다.</p>
         <p><strong>다이아 업데이트 방법:</strong><br>
