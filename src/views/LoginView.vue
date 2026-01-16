@@ -64,9 +64,9 @@ const handleSubmit = async () => {
 
 <template>
   <div class="login-container">
-    <h1 class="title">코레일 승무원 승무표 정보 외부 시스템</h1>
-    <h2 class="title">{{ isRegistering ? '회원가입' : '로그인' }}</h2>
-    <h3 class="title">Made by <a href="https://github.com/SJang1" target="_blank" rel="noopener noreferrer">SJang1</a></h3>
+    <h1 class="title-ctr">코레일 승무원 승무표 정보 외부 시스템</h1>
+    <h2 class="title-ctr">{{ isRegistering ? '회원가입' : '로그인' }}</h2>
+    <h3 class="title-ctr">Made by <a href="https://github.com/SJang1" target="_blank" rel="noopener noreferrer">SJang1</a></h3>
     <br class="mar-bt-2">
     <form @submit.prevent="handleSubmit">
       <div class="form-group">
@@ -205,15 +205,7 @@ button:disabled {
   text-align: center;
   font-size: 0.9rem;
 }
-h1 .title {
-    text-align: center;
-    color: var(--color-text-primary);
-}
-h2 .title {
-    text-align: center;
-    color: var(--color-text-primary);
-}
-h3 .title {
+.title-ctr {
     text-align: center;
     color: var(--color-text-primary);
 }
