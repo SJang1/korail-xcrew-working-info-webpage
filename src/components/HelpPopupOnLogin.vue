@@ -55,6 +55,8 @@ const close = () => {
   border-radius: 12px;
   width: 90%;
   max-width: 500px;
+  max-height: 80vh; /* Max height to enable scrolling */
+  overflow-y: auto; /* Enable vertical scrolling */
   text-align: left;
 }
 
