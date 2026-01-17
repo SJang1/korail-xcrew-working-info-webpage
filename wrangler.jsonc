@@ -5,7 +5,7 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "korail-xcrew-working-info-webpage",
-	"compatibility_date": "2025-10-08",
+	"compatibility_date": "2025-11-17",
 	"main": "server/index.ts",
 	"assets": {
 		"directory": "./dist",
