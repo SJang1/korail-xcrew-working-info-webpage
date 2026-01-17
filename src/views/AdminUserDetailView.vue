@@ -110,6 +110,29 @@ const handleResetPassword = async () => {
     }
 };
 
+const handleDeleteUser = async () => {
+    manageMessage.value = '';
+    manageError.value = '';
+    
+    const confirmMsg = `WARNING: This will permanently delete user '${targetUsername.value}' and ALL their data (schedules, etc).\n\nAre you absolutely sure?`;
+    if (!confirm(confirmMsg)) return;
+
+    try {
+        const res = await fetch(`/api/admin/user/${targetUsername.value}/delete`, {
+            method: 'DELETE'
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert("User deleted successfully. Redirecting to dashboard.");
+            router.push('/adm/dashboard');
+        } else {
+            manageError.value = data.message || "Delete failed";
+        }
+    } catch (e) {
+        manageError.value = "Network error";
+    }
+};
+
 
 const formattedCurrentDate = computed({
     get: () => {
@@ -392,6 +415,12 @@ const getTaskClass = (name: string) => {
                         </div>
                     </div>
 
+                    <div class="form-section danger-zone">
+                        <h4>Danger Zone</h4>
+                        <p class="warning-text">Once you delete a user, there is no going back. Please be certain.</p>
+                        <button @click="handleDeleteUser" class="delete-full-btn">Delete User</button>
+                    </div>
+
                     <div class="modal-actions">
                         <button @click="showManageModal = false" class="close-btn">Close</button>
                     </div>
@@ -434,6 +463,11 @@ nav a.active { background: var(--color-primary); color: var(--color-primary-cont
 .modal-actions { text-align: right; margin-top: 1rem; }
 .success-msg { color: var(--color-success); background: rgba(34, 197, 94, 0.1); padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; }
 .error-msg { color: var(--color-error); background: rgba(239, 68, 68, 0.1); padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; }
+
+.danger-zone { border: 1px solid var(--color-error); padding: 1rem; border-radius: 4px; background: rgba(239, 68, 68, 0.05); }
+.danger-zone h4 { color: var(--color-error); margin-top: 0; }
+.warning-text { font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 0.5rem; }
+.delete-full-btn { background: var(--color-error); color: white; border: none; padding: 0.7rem; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; }
 
 .card { background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: 12px; padding: 1.5rem; box-shadow: var(--shadow-sm); }
 .calendar-header-controls { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; justify-content: center; }

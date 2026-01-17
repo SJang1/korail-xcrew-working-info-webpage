@@ -639,6 +639,25 @@ export default {
                     return Response.json({ success: true, message: "User password reset successfully" }, { headers: corsHeaders });
                 }
 
+                if (path.startsWith("/api/admin/user/") && path.endsWith("/delete") && method === "DELETE") {
+                    const parts = path.split("/");
+                    const targetUsername = parts[4];
+                    
+                    if (!targetUsername) return new Response("Missing username", { status: 400, headers: corsHeaders });
+
+                    // Delete user and their related data
+                    const batch = [
+                        env.DB.prepare("DELETE FROM users WHERE username = ?").bind(targetUsername),
+                        env.DB.prepare("DELETE FROM schedules WHERE username = ?").bind(targetUsername),
+                        env.DB.prepare("DELETE FROM dia_info WHERE username = ?").bind(targetUsername),
+                        env.DB.prepare("DELETE FROM working_locations WHERE username = ?").bind(targetUsername)
+                    ];
+                    
+                    await env.DB.batch(batch);
+                    
+                    return Response.json({ success: true, message: "User deleted successfully" }, { headers: corsHeaders });
+                }
+
                 if (path.startsWith("/api/admin/user/") && path.endsWith("/dia") && method === "GET") {
                     // /api/admin/user/:username/dia
                     const parts = path.split("/");
