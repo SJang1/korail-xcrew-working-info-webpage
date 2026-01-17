@@ -115,6 +115,7 @@ const handleSubmit = async () => {
         <p class="hint">일반문의: <a href="mailto:sjang@sjang.xyz">sjang@sjang.xyz</a></p>
         <p class="hint">탈퇴문의: <a href="mailto:korailxcrew@sjang.dev">korailxcrew@sjang.dev</a></p>
         <p class="hint">이메일 주소 등을 수집하지 아니하여, 계정 관련 문의 필요 시 본인임을 증빙할 수 있는 서류 (사원증 등)을 이메일에 첨부하여 발송해 주셔야 처리가 가능함을 알려드립니다.</p>
+        <p class="hint"><a href="/adm">관리자 페이지 이동</a></p>
     </div>
   </div>
 </template>

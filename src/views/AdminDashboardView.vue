@@ -102,7 +102,7 @@ onMounted(() => {
 
 .view-btn-sm {
     padding: 0.5rem 1rem;
-    background-color: var(--color-secondary);
+    background-color: var(--color-info);
     color: white;
     border: none;
     border-radius: 4px;
