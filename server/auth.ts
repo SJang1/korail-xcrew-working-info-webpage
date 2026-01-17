@@ -38,20 +38,22 @@ export async function createJwt(payload: any, secret: string): Promise<string> {
     return `${data}.${signature}`;
 }
 
-export async function createSession(kv: KVNamespace, username: string, secret: string): Promise<string> {
-    const token = await createJwt({ sub: username }, secret);
-    await kv.put(username, token);
+export async function createSession(kv: KVNamespace, username: string, secret: string, prefix: string = ""): Promise<string> {
+    const token = await createJwt({ sub: username, role: prefix ? 'admin' : 'user' }, secret);
+    await kv.put(`${prefix}${username}`, token);
     return token;
 }
 
-export async function verifySession(kv: KVNamespace, request: Request, secret: string): Promise<string | null> {
+export async function verifySession(kv: KVNamespace, request: Request, secret: string, prefix: string = ""): Promise<string | null> {
     let token: string | null = null;
 
     // 1. Try to get token from cookie first
     const cookieHeader = request.headers.get("Cookie");
     if (cookieHeader) {
         const cookies = cookieHeader.split(';').map(c => c.trim());
-        const authCookie = cookies.find(c => c.startsWith("auth_token="));
+        // Check for specific admin cookie if prefix is set, otherwise default
+        const cookieName = prefix ? "admin_token" : "auth_token";
+        const authCookie = cookies.find(c => c.startsWith(`${cookieName}=`));
         if (authCookie) {
             token = authCookie.split("=")[1];
         }
@@ -90,7 +92,7 @@ export async function verifySession(kv: KVNamespace, request: Request, secret: s
         if (!username) return null;
         
         // 5. Verify against KV (Session Revocation Check)
-        const storedToken = await kv.get(username);
+        const storedToken = await kv.get(`${prefix}${username}`);
         if (storedToken !== token) {
             return null; // Token revoked or replaced
         }
@@ -102,6 +104,6 @@ export async function verifySession(kv: KVNamespace, request: Request, secret: s
     }
 }
 
-export async function destroySession(kv: KVNamespace, username: string) {
-    await kv.delete(username);
+export async function destroySession(kv: KVNamespace, username: string, prefix: string = "") {
+    await kv.delete(`${prefix}${username}`);
 }

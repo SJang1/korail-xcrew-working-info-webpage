@@ -2,6 +2,10 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
 import DashboardView from '../views/DashboardView.vue'
 import PrivacyView from '../views/PrivacyView.vue'
+import AdminLoginView from '../views/AdminLoginView.vue'
+import AdminDashboardView from '../views/AdminDashboardView.vue'
+import AdminUserDetailView from '../views/AdminUserDetailView.vue'
+import AdminSettingsView from '../views/AdminSettingsView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -27,6 +31,48 @@ const router = createRouter({
         path: '/privacy',
         name: 'privacy',
         component: PrivacyView,
+    },
+    // Admin Routes
+    {
+        path: '/adm/login',
+        name: 'admin-login',
+        component: AdminLoginView
+    },
+    {
+        path: '/adm/dashboard',
+        name: 'admin-dashboard',
+        component: AdminDashboardView,
+        beforeEnter: (to, from, next) => {
+            if (!localStorage.getItem('admin_user')) {
+                next('/adm/login');
+            } else {
+                next();
+            }
+        }
+    },
+    {
+        path: '/adm/settings',
+        name: 'admin-settings',
+        component: AdminSettingsView,
+        beforeEnter: (to, from, next) => {
+            if (!localStorage.getItem('admin_user')) {
+                next('/adm/login');
+            } else {
+                next();
+            }
+        }
+    },
+    {
+        path: '/adm/user/:username',
+        name: 'admin-user-detail',
+        component: AdminUserDetailView,
+        beforeEnter: (to, from, next) => {
+            if (!localStorage.getItem('admin_user')) {
+                next('/adm/login');
+            } else {
+                next();
+            }
+        }
     }
   ],
 })

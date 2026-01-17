@@ -16,6 +16,7 @@ export default {
         const method = request.method;
 
         let authenticatedUsername: string | null = null; // Declared here for broader scope
+        let authenticatedAdmin: string | null = null;
 
 		if (path.startsWith("/api/")) {
             // CORS headers
@@ -29,17 +30,136 @@ export default {
                 return new Response(null, { headers: corsHeaders });
             }
 
+            const secret = await env.JWT_SECRET.get() || "default-dev-secret-change-me";
+
             // --- Middleware: Verify Auth for Protected Routes ---
             if (path.startsWith("/api/xcrew/") || path.startsWith("/api/train") || path.startsWith("/api/user") || path === "/api/auth/logout") {
-                const secret = await env.JWT_SECRET.get() || "default-dev-secret-change-me";
                 authenticatedUsername = await verifySession(env.KORAIL_XCREW_SESSION_KV, request, secret);
                 
                 if (!authenticatedUsername && path !== "/api/auth/logout") { // Logout can proceed without a valid session
                     return new Response("Unauthorized: Invalid or expired session", { status: 401, headers: corsHeaders });
                 }
             }
+            
+            // --- Middleware: Verify Admin Auth ---
+            if (path.startsWith("/api/admin/") && path !== "/api/admin/login") {
+                authenticatedAdmin = await verifySession(env.KORAIL_XCREW_SESSION_KV, request, secret, "admin:");
+                if (!authenticatedAdmin) {
+                     return new Response("Unauthorized: Admin access required", { status: 401, headers: corsHeaders });
+                }
+            }
 
             try {
+                // --- Admin Auth Endpoints ---
+                if (path === "/api/admin/login" && method === "POST") {
+                     const { username, password } = await request.json() as any;
+                     if (!username || !password) return new Response("Missing fields", { status: 400, headers: corsHeaders });
+
+                     const msgBuffer = new TextEncoder().encode(password);
+                     const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+                     const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+                     const admin = await env.DB.prepare("SELECT * FROM admins WHERE username = ?")
+                        .bind(username)
+                        .first();
+
+                     if (!admin || admin.password_hash !== hashHex) {
+                         return new Response("Invalid admin credentials", { status: 401, headers: corsHeaders });
+                     }
+                     
+                     // Create Admin Session
+                     const token = await createSession(env.KORAIL_XCREW_SESSION_KV, admin.username as string, secret, "admin:");
+ 
+                     const cookie = `admin_token=${token}; Path=/; Expires=${new Date(Date.now() + 1000 * 60 * 60 * 24 * 365).toUTCString()}; HttpOnly; Secure; SameSite=Strict`;
+ 
+                     const headers = { ...corsHeaders, "Set-Cookie": cookie };
+ 
+                     return Response.json({ 
+                         success: true, 
+                         admin: { username: admin.username }
+                     }, { headers });
+                }
+
+                if (path === "/api/admin/logout" && method === "POST") {
+                    if (authenticatedAdmin) {
+                        await destroySession(env.KORAIL_XCREW_SESSION_KV, authenticatedAdmin, "admin:");
+                    }
+                    const cookie = `admin_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Strict`;
+                    const headers = { ...corsHeaders, "Set-Cookie": cookie };
+                    return Response.json({ success: true }, { headers });
+                }
+
+                if (path === "/api/admin/password" && method === "POST") {
+                    if (!authenticatedAdmin) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+                    
+                    const { currentPassword, newPassword } = await request.json() as any;
+                    if (!currentPassword || !newPassword) return new Response("Missing fields", { status: 400, headers: corsHeaders });
+
+                    const admin = await env.DB.prepare("SELECT password_hash FROM admins WHERE username = ?").bind(authenticatedAdmin).first();
+                    if (!admin) return new Response("Admin not found", { status: 404, headers: corsHeaders });
+
+                    // Verify current
+                    const currentHashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(currentPassword));
+                    const currentHashHex = Array.from(new Uint8Array(currentHashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+                    if (admin.password_hash !== currentHashHex) {
+                        return new Response("Invalid current password", { status: 403, headers: corsHeaders });
+                    }
+
+                    // Update
+                    const newHashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(newPassword));
+                    const newHashHex = Array.from(new Uint8Array(newHashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+                    await env.DB.prepare("UPDATE admins SET password_hash = ? WHERE username = ?")
+                        .bind(newHashHex, authenticatedAdmin)
+                        .run();
+                    
+                    return Response.json({ success: true, message: "Password updated" }, { headers: corsHeaders });
+                }
+
+                if (path === "/api/admin/admins" && method === "GET") {
+                    if (!authenticatedAdmin) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+                    const { results } = await env.DB.prepare("SELECT id, username, created_at FROM admins ORDER BY created_at DESC").all();
+                    return Response.json({ success: true, data: results }, { headers: corsHeaders });
+                }
+
+                if (path === "/api/admin/create" && method === "POST") {
+                    if (!authenticatedAdmin) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+                    
+                    const { username, password } = await request.json() as any;
+                    if (!username || !password) return new Response("Missing fields", { status: 400, headers: corsHeaders });
+
+                    const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password));
+                    const hashHex = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+                    try {
+                        await env.DB.prepare("INSERT INTO admins (username, password_hash) VALUES (?, ?)")
+                            .bind(username, hashHex)
+                            .run();
+                        return Response.json({ success: true }, { headers: corsHeaders });
+                    } catch (e: any) {
+                        if (e.message.includes("UNIQUE")) {
+                            return new Response("Username already exists", { status: 409, headers: corsHeaders });
+                        }
+                        throw e;
+                    }
+                }
+
+                if (path.startsWith("/api/admin/admins/") && method === "DELETE") {
+                    if (!authenticatedAdmin) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+                    
+                    const targetAdmin = path.split("/").pop(); // /api/admin/admins/:username
+                    if (!targetAdmin) return new Response("Missing username", { status: 400, headers: corsHeaders });
+
+                    if (targetAdmin === authenticatedAdmin) {
+                        return new Response("Cannot delete yourself", { status: 400, headers: corsHeaders });
+                    }
+
+                    await env.DB.prepare("DELETE FROM admins WHERE username = ?").bind(targetAdmin).run();
+                    return Response.json({ success: true }, { headers: corsHeaders });
+                }
+
+
                 // --- User Management Endpoints ---
                 if (path === "/api/user/profile" && (method === "GET" || method === "POST")) {
                     const secret = await env.JWT_SECRET.get() || "default-dev-secret-change-me";
@@ -423,6 +543,114 @@ export default {
                      } catch (e: any) {
                          return Response.json({ found: false, message: e.message }, { headers: corsHeaders });
                      }
+                }
+
+                // --- Admin Data Endpoints ---
+                
+                if (path === "/api/admin/users" && method === "GET") {
+                    const { results } = await env.DB.prepare("SELECT id, username, name, created_at FROM users ORDER BY created_at DESC").all();
+                    return Response.json({ success: true, data: results }, { headers: corsHeaders });
+                }
+
+                if (path.startsWith("/api/admin/user/") && path.endsWith("/schedule") && method === "GET") {
+                    // /api/admin/user/:username/schedule
+                    const parts = path.split("/");
+                    const targetUsername = parts[4];
+                    const date = url.searchParams.get("date");
+
+                    if (!targetUsername || !date) return new Response("Missing params", { status: 400, headers: corsHeaders });
+
+                    // Reuse logic from /api/xcrew/schedule
+                    const row = await env.DB.prepare("SELECT data FROM schedules WHERE username = ? AND date = ?")
+                        .bind(targetUsername, date)
+                        .first();
+                        
+                    let scheduleData = row ? JSON.parse(row.data as string) : null;
+
+                    if (scheduleData && Array.isArray(scheduleData)) {
+                        const monthPrefix = date.substring(0, 6);
+                        const { results: locs } = await env.DB.prepare("SELECT date, location FROM working_locations WHERE username = ? AND date LIKE ?")
+                            .bind(targetUsername, `${monthPrefix}%`)
+                            .all();
+                        
+                        const locMap = (locs || []).reduce((acc: any, curr: any) => {
+                            acc[curr.date] = curr.location;
+                            return acc;
+                        }, {});
+
+                        scheduleData = scheduleData.map((item: any) => {
+                            if (locMap[item.pjtDt]) {
+                                item.location = locMap[item.pjtDt];
+                            }
+                            return item;
+                        });
+                    }
+
+                    const { results: colors } = await env.DB.prepare("SELECT * FROM location_colors").all();
+                    const colorMap = (colors || []).reduce((acc: any, curr: any) => {
+                        acc[curr.name] = curr.color;
+                        return acc;
+                    }, {});
+                    colorMap['비상'] = 'hsl(0, 0%, 94%)';
+
+                    return Response.json({ 
+                        success: true, 
+                        data: scheduleData,
+                        colors: colorMap
+                    }, { headers: corsHeaders });
+                }
+
+                if (path.startsWith("/api/admin/user/") && path.endsWith("/profile") && method === "GET") {
+                    const parts = path.split("/");
+                    const targetUsername = parts[4];
+                    const user = await env.DB.prepare("SELECT username, name FROM users WHERE username = ?").bind(targetUsername).first();
+                    if (!user) return new Response("User not found", { status: 404, headers: corsHeaders });
+                    return Response.json({ success: true, data: user }, { headers: corsHeaders });
+                }
+
+                if (path.startsWith("/api/admin/user/") && path.endsWith("/update-profile") && method === "POST") {
+                    const parts = path.split("/");
+                    const targetUsername = parts[4];
+                    const { name } = await request.json() as any;
+                    
+                    if (!targetUsername || typeof name !== 'string') return new Response("Invalid params", { status: 400, headers: corsHeaders });
+
+                    await env.DB.prepare("UPDATE users SET name = ? WHERE username = ?")
+                        .bind(name, targetUsername)
+                        .run();
+                    
+                    return Response.json({ success: true, message: "User profile updated" }, { headers: corsHeaders });
+                }
+
+                if (path.startsWith("/api/admin/user/") && path.endsWith("/reset-password") && method === "POST") {
+                    const parts = path.split("/");
+                    const targetUsername = parts[4];
+                    const { newPassword } = await request.json() as any;
+                    
+                    if (!targetUsername || !newPassword) return new Response("Missing params", { status: 400, headers: corsHeaders });
+
+                    const newHashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(newPassword));
+                    const newHashHex = Array.from(new Uint8Array(newHashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+                    await env.DB.prepare("UPDATE users SET password_hash = ? WHERE username = ?")
+                        .bind(newHashHex, targetUsername)
+                        .run();
+                    
+                    return Response.json({ success: true, message: "User password reset successfully" }, { headers: corsHeaders });
+                }
+
+                if (path.startsWith("/api/admin/user/") && path.endsWith("/dia") && method === "GET") {
+                    // /api/admin/user/:username/dia
+                    const parts = path.split("/");
+                    const targetUsername = parts[4];
+                    const date = url.searchParams.get("date");
+                    
+                    if (!targetUsername || !date) return new Response("Missing params", { status: 400, headers: corsHeaders });
+
+                    const row = await env.DB.prepare("SELECT data FROM dia_info WHERE username = ? AND date = ?")
+                        .bind(targetUsername, date)
+                        .first();
+                    return Response.json({ success: true, data: row ? JSON.parse(row.data as string) : null }, { headers: corsHeaders });
                 }
 
             } catch (e: any) {
