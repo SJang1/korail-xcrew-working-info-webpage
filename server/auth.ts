@@ -27,7 +27,7 @@ export async function createJwt(payload: any, secret: string): Promise<string> {
     const body = JSON.stringify({
         ...payload,
         iat: Math.floor(Date.now() / 1000),
-        exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7) // 7 days
+        exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 365) // 365 days
     });
 
     const encodedHeader = base64UrlEncode(header);

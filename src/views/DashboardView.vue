@@ -861,7 +861,7 @@ const forceReload = () => {
                   <label>XROIS 비밀번호</label>
                   <input v-model="xcrewPw" type="password" :placeholder="xcrewPw" />
                   <p class="hint">업데이트 시 필요한 XROIS 비밀번호입니다. 이 정보는 서버에 저장되지 않고, 사용자의 브라우저에만 저장됩니다.</p>
-                  <p class="hint">XROIS 비밀번호가 변경된 경우, 여기에도 새로 입력해 주세요.</p>
+                  <p class="hint">XROIS 비밀번호가 변경된 경우, 여기에도 다시 입력해 주세요.</p>
 
               </div>
           </div>
