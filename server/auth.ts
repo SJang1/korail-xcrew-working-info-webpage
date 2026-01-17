@@ -44,18 +44,27 @@ export async function createSession(kv: KVNamespace, username: string, secret: s
     return token;
 }
 
-export async function verifySession(kv: KVNamespace, request: Request, secret: string, prefix: string = ""): Promise<string | null> {
+export async function verifySession(kv: KVNamespace, request: Request, secret: string): Promise<{ username: string, isAdmin: boolean } | null> {
     let token: string | null = null;
+    let isAdmin = false;
 
-    // 1. Try to get token from cookie first
+    // 1. Try to get token from cookies
     const cookieHeader = request.headers.get("Cookie");
     if (cookieHeader) {
         const cookies = cookieHeader.split(';').map(c => c.trim());
-        // Check for specific admin cookie if prefix is set, otherwise default
-        const cookieName = prefix ? "admin_token" : "auth_token";
-        const authCookie = cookies.find(c => c.startsWith(`${cookieName}=`));
-        if (authCookie) {
-            token = authCookie.split("=")[1];
+        
+        // Check for admin token first
+        const adminCookie = cookies.find(c => c.startsWith("admin_token="));
+        if (adminCookie) {
+            token = adminCookie.split("=")[1];
+            isAdmin = true;
+        } else {
+            // Check for user token
+            const userCookie = cookies.find(c => c.startsWith("auth_token="));
+            if (userCookie) {
+                token = userCookie.split("=")[1];
+                isAdmin = false;
+            }
         }
     }
 
@@ -64,14 +73,28 @@ export async function verifySession(kv: KVNamespace, request: Request, secret: s
         const authHeader = request.headers.get("Authorization");
         if (authHeader && authHeader.startsWith("Bearer ")) {
             token = authHeader.split(" ")[1];
+            // We need to decode the token to know if it's admin or user for the KV check
+            // We'll do a preliminary decode here just to check the role claim if present, 
+            // or we can rely on the signature verification and then check role.
+            // Let's defer determining isAdmin for header auth until after signature check to be safe,
+            // or decode the payload insecurely first (standard practice for routing) then verify.
+            try {
+                const parts = token.split('.');
+                if (parts.length === 3) {
+                    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+                    isAdmin = payload.role === 'admin';
+                }
+            } catch (e) {
+                return null;
+            }
         }
     }
 
     if (!token) {
-        return null; // No token found in either cookie or header
+        return null; // No token found
     }
     
-    // 3. Verify Signature (Basic JWT Check)
+    // 3. Verify Signature
     try {
         const [headerB64, bodyB64, signatureB64] = token.split(".");
         if (!headerB64 || !bodyB64 || !signatureB64) {
@@ -85,19 +108,26 @@ export async function verifySession(kv: KVNamespace, request: Request, secret: s
             return null; // Invalid signature
         }
         
-        // 4. Decode payload to get username
+        // 4. Decode payload
         const payload = JSON.parse(atob(bodyB64.replace(/-/g, '+').replace(/_/g, '/')));
         const username = payload.sub;
         
         if (!username) return null;
         
+        // Ensure the isAdmin flag matches the token claim (if we got token from cookie, we guessed based on cookie name)
+        // If the token claims to be admin, we treat it as such for KV lookup.
+        // If token from cookie said admin_token but payload says user, that's a mismatch, but we'll trust payload for KV lookup key.
+        isAdmin = payload.role === 'admin';
+        
         // 5. Verify against KV (Session Revocation Check)
+        const prefix = isAdmin ? "admin:" : "";
         const storedToken = await kv.get(`${prefix}${username}`);
+        
         if (storedToken !== token) {
             return null; // Token revoked or replaced
         }
         
-        return username;
+        return { username, isAdmin };
     } catch (e) {
         console.error("Token verification failed:", e);
         return null;

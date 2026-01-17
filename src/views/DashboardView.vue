@@ -94,12 +94,20 @@ watch(view, (newView) => {
 });
 
 onMounted(async () => {
-  const user = localStorage.getItem('app_user');
-  if (!user) {
-    router.push('/');
-    return;
+  const urlParams = new URLSearchParams(window.location.search);
+  const userFromQuery = urlParams.get('user');
+  
+  if (userFromQuery) {
+    appUser.value = userFromQuery;
+    // Don't store admin-viewed user in localStorage
+  } else {
+    const user = localStorage.getItem('app_user');
+    if (!user) {
+      router.push('/');
+      return;
+    }
+    appUser.value = user.trim();
   }
-  appUser.value = user.trim();
 
   // Show help popup on login
   if (sessionStorage.getItem('showHelpOnLoad')) {
@@ -123,7 +131,7 @@ onMounted(async () => {
 
 const loadUserProfile = async () => {
     try {
-        const profile = await fetchWithAuth('/api/user/profile');
+        const profile = await fetchWithAuth(`/api/user/profile?username=${appUser.value}`);
         if (profile.success && profile.data) {
             empName.value = profile.data.name || '';
         }
@@ -482,8 +490,14 @@ const logout = async () => {
         // Log error but don't block client-side logout
         console.error("Server logout failed, proceeding with client-side cleanup:", e);
     } finally {
-        // Always clear local storage and redirect
-        localStorage.removeItem('app_user');
+        const urlParams = new URLSearchParams(window.location.search);
+        const userFromQuery = urlParams.get('user');
+        
+        // Only clear storage if it's a real user logout, not an admin viewing as user
+        if (!userFromQuery) {
+            localStorage.removeItem('app_user');
+        }
+        
         router.push('/');
     }
 }

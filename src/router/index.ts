@@ -13,6 +13,13 @@ const router = createRouter({
     {
       path: '/',
       name: 'login',
+      beforeEnter: (to, from, next) => {
+        if (localStorage.getItem('app_user')) {
+          next('/dashboard');
+        } else {
+          next();
+        }
+      },
       component: LoginView,
     },
     {
@@ -20,7 +27,7 @@ const router = createRouter({
       name: 'dashboard',
       component: DashboardView,
       beforeEnter: (to, from, next) => {
-        if (!localStorage.getItem('app_user')) {
+        if (!localStorage.getItem('app_user') && !localStorage.getItem('admin_user')) {
           next('/');
         } else {
           next();
@@ -33,6 +40,10 @@ const router = createRouter({
         component: PrivacyView,
     },
     // Admin Routes
+    {
+        path: '/adm',
+        redirect: '/adm/dashboard',
+    },
     {
         path: '/adm/login',
         name: 'admin-login',

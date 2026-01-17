@@ -15,8 +15,7 @@ export default {
         const path = url.pathname;
         const method = request.method;
 
-        let authenticatedUsername: string | null = null; // Declared here for broader scope
-        let authenticatedAdmin: string | null = null;
+        let session: { username: string, isAdmin: boolean } | null = null;
 
 		if (path.startsWith("/api/")) {
             // CORS headers
@@ -31,21 +30,20 @@ export default {
             }
 
             const secret = await env.JWT_SECRET.get() || "default-dev-secret-change-me";
-
-            // --- Middleware: Verify Auth for Protected Routes ---
-            if (path.startsWith("/api/xcrew/") || path.startsWith("/api/train") || path.startsWith("/api/user") || path === "/api/auth/logout") {
-                authenticatedUsername = await verifySession(env.KORAIL_XCREW_SESSION_KV, request, secret);
-                
-                if (!authenticatedUsername && path !== "/api/auth/logout") { // Logout can proceed without a valid session
-                    return new Response("Unauthorized: Invalid or expired session", { status: 401, headers: corsHeaders });
-                }
-            }
             
-            // --- Middleware: Verify Admin Auth ---
-            if (path.startsWith("/api/admin/") && path !== "/api/admin/login") {
-                authenticatedAdmin = await verifySession(env.KORAIL_XCREW_SESSION_KV, request, secret, "admin:");
-                if (!authenticatedAdmin) {
-                     return new Response("Unauthorized: Admin access required", { status: 401, headers: corsHeaders });
+            // --- Unified Authentication Middleware ---
+            // Skip auth for login/register routes
+            if (path !== "/api/admin/login" && path !== "/api/auth/login" && path !== "/api/auth/register") {
+                session = await verifySession(env.KORAIL_XCREW_SESSION_KV, request, secret);
+
+                // Admin route protection
+                if (path.startsWith("/api/admin/") && !session?.isAdmin) {
+                    return new Response("Unauthorized: Admin access required", { status: 401, headers: corsHeaders });
+                }
+
+                // General protected route protection
+                if ((path.startsWith("/api/xcrew/") || path.startsWith("/api/train") || path.startsWith("/api/user") || path === "/api/auth/logout") && !session) {
+                    return new Response("Unauthorized: Invalid or expired session", { status: 401, headers: corsHeaders });
                 }
             }
 
@@ -81,8 +79,8 @@ export default {
                 }
 
                 if (path === "/api/admin/logout" && method === "POST") {
-                    if (authenticatedAdmin) {
-                        await destroySession(env.KORAIL_XCREW_SESSION_KV, authenticatedAdmin, "admin:");
+                    if (session?.isAdmin) {
+                        await destroySession(env.KORAIL_XCREW_SESSION_KV, session.username, "admin:");
                     }
                     const cookie = `admin_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Strict`;
                     const headers = { ...corsHeaders, "Set-Cookie": cookie };
@@ -90,12 +88,11 @@ export default {
                 }
 
                 if (path === "/api/admin/password" && method === "POST") {
-                    if (!authenticatedAdmin) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
-                    
+                    if (!session) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
                     const { currentPassword, newPassword } = await request.json() as any;
                     if (!currentPassword || !newPassword) return new Response("Missing fields", { status: 400, headers: corsHeaders });
 
-                    const admin = await env.DB.prepare("SELECT password_hash FROM admins WHERE username = ?").bind(authenticatedAdmin).first();
+                    const admin = await env.DB.prepare("SELECT password_hash FROM admins WHERE username = ?").bind(session.username).first();
                     if (!admin) return new Response("Admin not found", { status: 404, headers: corsHeaders });
 
                     // Verify current
@@ -111,21 +108,18 @@ export default {
                     const newHashHex = Array.from(new Uint8Array(newHashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
                     await env.DB.prepare("UPDATE admins SET password_hash = ? WHERE username = ?")
-                        .bind(newHashHex, authenticatedAdmin)
+                        .bind(newHashHex, session.username)
                         .run();
                     
                     return Response.json({ success: true, message: "Password updated" }, { headers: corsHeaders });
                 }
 
                 if (path === "/api/admin/admins" && method === "GET") {
-                    if (!authenticatedAdmin) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
                     const { results } = await env.DB.prepare("SELECT id, username, created_at FROM admins ORDER BY created_at DESC").all();
                     return Response.json({ success: true, data: results }, { headers: corsHeaders });
                 }
 
                 if (path === "/api/admin/create" && method === "POST") {
-                    if (!authenticatedAdmin) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
-                    
                     const { username, password } = await request.json() as any;
                     if (!username || !password) return new Response("Missing fields", { status: 400, headers: corsHeaders });
 
@@ -146,12 +140,11 @@ export default {
                 }
 
                 if (path.startsWith("/api/admin/admins/") && method === "DELETE") {
-                    if (!authenticatedAdmin) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
-                    
+                    if (!session) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
                     const targetAdmin = path.split("/").pop(); // /api/admin/admins/:username
                     if (!targetAdmin) return new Response("Missing username", { status: 400, headers: corsHeaders });
 
-                    if (targetAdmin === authenticatedAdmin) {
+                    if (targetAdmin === session.username) {
                         return new Response("Cannot delete yourself", { status: 400, headers: corsHeaders });
                     }
 
@@ -162,22 +155,32 @@ export default {
 
                 // --- User Management Endpoints ---
                 if (path === "/api/user/profile" && (method === "GET" || method === "POST")) {
-                    const secret = await env.JWT_SECRET.get() || "default-dev-secret-change-me";
-                    const username = await verifySession(env.KORAIL_XCREW_SESSION_KV, request, secret);
-                    if (!username) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
-
+                    if (!session) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
                     if (method === "GET") {
-                        const user = await env.DB.prepare("SELECT username, name FROM users WHERE username = ?").bind(username).first();
+                        let targetUsername: string | null = null;
+                        const requestedUsername = url.searchParams.get("username");
+
+                        if (session.isAdmin) {
+                            targetUsername = requestedUsername || session.username; // Default to self if no user specified
+                        } else {
+                            targetUsername = session.username;
+                             if (requestedUsername && requestedUsername !== targetUsername) {
+                                return new Response("Unauthorized: You can only access your own data.", { status: 403, headers: corsHeaders });
+                            }
+                        }
+                        
+                        const user = await env.DB.prepare("SELECT username, name FROM users WHERE username = ?").bind(targetUsername).first();
                         if (!user) return new Response("User not found", { status: 404, headers: corsHeaders });
                         return Response.json({ success: true, data: { name: user.name } }, { headers: corsHeaders });
                     }
 
                     if (method === "POST") {
+                        // POST should always be for the logged-in user themselves.
                         const { name } = await request.json() as any;
                         if (typeof name !== 'string') return new Response("Invalid name", { status: 400, headers: corsHeaders });
 
                         await env.DB.prepare("UPDATE users SET name = ? WHERE username = ?")
-                            .bind(name, username)
+                            .bind(name, session.username)
                             .run();
                         
                         return Response.json({ success: true, message: "Profile updated" }, { headers: corsHeaders });
@@ -185,15 +188,12 @@ export default {
                 }
 
                 if (path === "/api/user/password" && method === "POST") {
-                    const secret = await env.JWT_SECRET.get() || "default-dev-secret-change-me";
-                    const username = await verifySession(env.KORAIL_XCREW_SESSION_KV, request, secret);
-                    if (!username) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
-
+                    if (!session) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
                     const { currentPassword, newPassword } = await request.json() as any;
                     if (!currentPassword || !newPassword) return new Response("Missing fields", { status: 400, headers: corsHeaders });
 
                     // 1. Verify current password
-                    const user = await env.DB.prepare("SELECT password_hash FROM users WHERE username = ?").bind(username).first();
+                    const user = await env.DB.prepare("SELECT password_hash FROM users WHERE username = ?").bind(session.username).first();
                     if (!user) return new Response("User not found", { status: 404, headers: corsHeaders });
 
                     const currentHashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(currentPassword));
@@ -208,7 +208,7 @@ export default {
                     const newHashHex = Array.from(new Uint8Array(newHashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
                     await env.DB.prepare("UPDATE users SET password_hash = ? WHERE username = ?")
-                        .bind(newHashHex, username)
+                        .bind(newHashHex, session.username)
                         .run();
                     
                     return Response.json({ success: true, message: "Password updated successfully" }, { headers: corsHeaders });
@@ -290,9 +290,8 @@ export default {
                 }
 
                 if (path === "/api/auth/logout" && method === "POST") {
-                    // username is already verified and available from authenticatedUsername
-                    if (authenticatedUsername) {
-                        await destroySession(env.KORAIL_XCREW_SESSION_KV, authenticatedUsername);
+                    if (session && !session.isAdmin) {
+                        await destroySession(env.KORAIL_XCREW_SESSION_KV, session.username);
                     }
                     // Clear the cookie by setting an expiry date in the past
                     const cookie = `auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Strict`;
@@ -305,16 +304,25 @@ export default {
                 // --- Xcrew Proxy Endpoints ---
                 
                 if (path === "/api/xcrew/schedule" && method === "GET") {
-                    const username = url.searchParams.get("username");
-                    const date = url.searchParams.get("date"); // YYYYMMDD
-                    if (!username || !date) return new Response("Missing params", { status: 400, headers: corsHeaders });
-
-                    if (!authenticatedUsername || username !== authenticatedUsername) {
-                        return new Response("Unauthorized: Username mismatch", { status: 403, headers: corsHeaders });
+                    if (!session) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+                    let targetUsername: string | null = null;
+                    const requestedUsername = url.searchParams.get("username");
+                    
+                    if (session.isAdmin) {
+                        targetUsername = requestedUsername;
+                    } else {
+                        targetUsername = session.username;
+                        // Optional: if a non-admin tries to request another user's data
+                        if (requestedUsername && requestedUsername !== targetUsername) {
+                            return new Response("Unauthorized: You can only access your own data.", { status: 403, headers: corsHeaders });
+                        }
                     }
 
+                    const date = url.searchParams.get("date"); // YYYYMMDD
+                    if (!targetUsername || !date) return new Response("Missing params", { status: 400, headers: corsHeaders });
+
                     const row = await env.DB.prepare("SELECT data FROM schedules WHERE username = ? AND date = ?")
-                        .bind(username, date)
+                        .bind(targetUsername, date)
                         .first();
                         
                     let scheduleData = row ? JSON.parse(row.data as string) : null;
@@ -323,7 +331,7 @@ export default {
                     if (scheduleData && Array.isArray(scheduleData)) {
                         const monthPrefix = date.substring(0, 6); // YYYYMM
                         const { results: locs } = await env.DB.prepare("SELECT date, location FROM working_locations WHERE username = ? AND date LIKE ?")
-                            .bind(username, `${monthPrefix}%`)
+                            .bind(targetUsername, `${monthPrefix}%`)
                             .all();
                         
                         const locMap = (locs || []).reduce((acc: any, curr: any) => {
@@ -356,13 +364,15 @@ export default {
                 }
 
                 if (path === "/api/xcrew/schedule" && method === "POST") {
+                    if (!session) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
                     const { xcrewId, xcrewPw, date, empName } = await request.json() as any;
                     if (!xcrewId || !xcrewPw || !date || !empName) {
                         return new Response("Missing params", { status: 400, headers: corsHeaders });
                     }
 
-                    if (!authenticatedUsername || xcrewId !== authenticatedUsername) {
-                        return new Response("Unauthorized: Username mismatch", { status: 403, headers: corsHeaders });
+                    // For updates, the logged-in user must match the requested user, even for admins.
+                    if (xcrewId !== session.username) {
+                        return new Response("Unauthorized: You can only update your own schedule.", { status: 403, headers: corsHeaders });
                     }
 
                     const client = new KorailClient(xcrewId, xcrewPw);
@@ -490,28 +500,37 @@ export default {
                 }
                 
                 if (path === "/api/xcrew/dia" && method === "GET") {
-                    const username = url.searchParams.get("username");
-                    const date = url.searchParams.get("date");
-                    if (!username || !date) return new Response("Missing params", { status: 400, headers: corsHeaders });
+                    if (!session) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+                    let targetUsername: string | null = null;
+                    const requestedUsername = url.searchParams.get("username");
 
-                    if (!authenticatedUsername || username !== authenticatedUsername) {
-                        return new Response("Unauthorized: Username mismatch", { status: 403, headers: corsHeaders });
+                    if (session.isAdmin) {
+                        targetUsername = requestedUsername;
+                    } else {
+                        targetUsername = session.username;
+                        if (requestedUsername && requestedUsername !== targetUsername) {
+                            return new Response("Unauthorized: You can only access your own data.", { status: 403, headers: corsHeaders });
+                        }
                     }
 
+                    const date = url.searchParams.get("date");
+                    if (!targetUsername || !date) return new Response("Missing params", { status: 400, headers: corsHeaders });
+
                     const row = await env.DB.prepare("SELECT data FROM dia_info WHERE username = ? AND date = ?")
-                        .bind(username, date)
+                        .bind(targetUsername, date)
                         .first();
                     return Response.json({ success: true, data: row ? JSON.parse(row.data as string) : null }, { headers: corsHeaders });
                 }
 
                 if (path === "/api/xcrew/dia" && method === "POST") {
+                    if (!session) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
                     const { xcrewId, xcrewPw, date } = await request.json() as any;
                      if (!xcrewId || !xcrewPw || !date) {
                         return new Response("Missing params", { status: 400, headers: corsHeaders });
                     }
 
-                    if (!authenticatedUsername || xcrewId !== authenticatedUsername) {
-                        return new Response("Unauthorized: Username mismatch", { status: 403, headers: corsHeaders });
+                    if (xcrewId !== session.username) {
+                        return new Response("Unauthorized: You can only update your own dia.", { status: 403, headers: corsHeaders });
                     }
                     
                     const client = new KorailClient(xcrewId, xcrewPw);

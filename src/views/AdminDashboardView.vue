@@ -37,6 +37,10 @@ const viewUser = (username: string) => {
     router.push(`/adm/user/${username}`);
 };
 
+const viewAsUser = (username: string) => {
+    router.push(`/dashboard?user=${username}`);
+};
+
 const manageUser = (username: string) => {
     router.push(`/adm/user/${username}?action=manage`);
 };
@@ -78,6 +82,7 @@ onMounted(() => {
                         <td>{{ new Date(user.created_at).toLocaleDateString() }}</td>
                         <td>
                             <button @click="viewUser(user.username)" style="margin-right: 0.5rem;">View Schedule</button>
+                            <button @click="viewAsUser(user.username)" class="view-btn-sm" style="margin-right: 0.5rem;">View as User</button>
                             <button @click="manageUser(user.username)" class="manage-btn-sm">Manage</button>
                         </td>
                     </tr>
@@ -93,6 +98,15 @@ onMounted(() => {
     max-width: 1200px;
     margin: 0 auto;
     color: var(--color-text-primary);
+}
+
+.view-btn-sm {
+    padding: 0.5rem 1rem;
+    background-color: var(--color-secondary);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
 }
 
 .manage-btn-sm {
