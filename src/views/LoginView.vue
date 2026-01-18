@@ -67,6 +67,7 @@ const handleSubmit = async () => {
     <h1 class="title-ctr">코레일 승무원 승무표 정보 외부 시스템</h1>
     <h2 class="title-ctr">{{ isRegistering ? '회원가입' : '로그인' }}</h2>
     <h3 class="title-ctr">Made by <a href="https://github.com/SJang1" target="_blank" rel="noopener noreferrer">SJang1</a></h3>
+    <router-link to="/app"><h3 class="title-ctr">어플리케이션(앱)을 사용하시면 더욱 편리합니다</h3></router-link>
     <br class="mar-bt-2">
     <form @submit.prevent="handleSubmit">
       <div class="form-group">
@@ -222,6 +223,7 @@ button:disabled {
     border-top: 1px solid var(--color-border);
 }
 .footer-links a {
+    margin: 0 10px;
     color: var(--color-text-muted);
     font-size: 0.8rem;
     text-decoration: none;

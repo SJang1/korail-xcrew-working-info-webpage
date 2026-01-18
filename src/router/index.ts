@@ -6,6 +6,7 @@ import AdminLoginView from '../views/AdminLoginView.vue'
 import AdminDashboardView from '../views/AdminDashboardView.vue'
 import AdminUserDetailView from '../views/AdminUserDetailView.vue'
 import AdminSettingsView from '../views/AdminSettingsView.vue'
+import PromotionApp from '../views/PromotionApp.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -33,6 +34,11 @@ const router = createRouter({
           next();
         }
       }
+    },
+    {
+      "path": "/app",
+      name: "application install",
+      component: PromotionApp,
     },
     {
         path: '/privacy',
