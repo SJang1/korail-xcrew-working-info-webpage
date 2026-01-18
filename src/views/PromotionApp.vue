@@ -34,7 +34,7 @@ const openLink = (url: string) => {
         <p>
             아래 버튼을 눌러 APK 파일을 다운로드하고 설치하세요.
         </p>
-        <button @click="openLink('https://korail-xcrew-app-r2.sjang.dev/apk/SJKRLCrew-v1.0.0%2B6.apk')">
+        <button @click="openLink('https://korail-xcrew-app-r2.sjang.dev/apk/SJKRLCrew-v1.0.0%2B7.apk')">
             Android 앱 다운로드 (APK)
         </button>
         <p class="hint">
