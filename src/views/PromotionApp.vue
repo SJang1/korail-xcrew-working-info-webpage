@@ -80,11 +80,25 @@ const submitEmail = async () => {
                     required
                 />
             </div>
-            
+
+            <div class="form-group">
+                <label for="platform">참여 플랫폼</label>
+                <select id="platform" v-model="selectedPlatform">
+                    <option value="iOS">iOS (아이폰)</option>
+                    <option value="Android" selected="true">Android</option>
+                </select>
+            </div>
+
             <button type="submit" :disabled="loading" class="submit-btn">
                 {{ loading ? '신청 중...' : '클로즈드 테스트 신청' }}
             </button>
         </form>
+        <p>개인정보 수집 이용 관련 사항<br/>
+            본 폼에 신청함으로서 아래 개인정보 수집 이용에 동의하시게 됩니다.<br/>
+            - 수집 항목: 이메일 주소, 참여 플랫폼 (iOS/Android)<br/>
+            - 수집 목적: 클로즈드 테스트 참여 신청 접수 및 승인 알림<br/>
+            - 보유 기간: 클로즈드 테스트 종료 후 30일 이내 파기
+            </p>
     </div>
 
     <div v-else class="success-section">
