@@ -58,6 +58,22 @@ const submitEmail = async () => {
     <h3 class="title-ctr">Made by <a href="https://github.com/SJang1" target="_blank" rel="noopener noreferrer">SJang1</a></h3>
     <br class="mar-bt-2">
     
+    <div class="platform-section">
+        <h3>iOS (아이폰) - TestFlight</h3>
+        <p>
+            TestFlight 테스트를 진행하고 있습니다.<br/>
+            아래 버튼을 눌러 TestFlight에 참여하세요.<br/>
+            참고: Apple에서 App Review를 완료하기 전까지는 참여가 어려울 수 있습니다.
+        </p>
+        <button @click="openLink('https://testflight.apple.com/join/cB2uCSdw')" class="tertiary-btn">
+            iOS 앱 설치 (TestFlight)
+        </button>
+        <p class="hint">
+            먼저 App Store에서 TestFlight 앱을 설치해야 합니다.
+        </p>
+    </div>
+
+
     <div v-if="!submitted" class="form-section">
         <h3>Android 클로즈드 테스트 참여</h3>
         <p>
@@ -112,19 +128,7 @@ const submitEmail = async () => {
         </button>
     </div>
 
-    <div class="platform-section">
-        <h3>iOS (아이폰) - TestFlight</h3>
-        <p>
-            현재 TestFlight 테스트를 진행하고 있습니다.<br/>
-            아래 버튼을 눌러 TestFlight에 참여하세요.
-        </p>
-        <button @click="openLink('https://testflight.apple.com/join/cB2uCSdw')" class="tertiary-btn">
-            iOS 앱 설치 (TestFlight)
-        </button>
-        <p class="hint">
-            먼저 App Store에서 TestFlight 앱을 설치해야 합니다.
-        </p>
-    </div>
+    
 
     <div class="footer-links">
         <router-link to="/login">로그인 페이지로 돌아가기</router-link>
