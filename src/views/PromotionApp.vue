@@ -54,7 +54,7 @@ const submitEmail = async () => {
 <template>
   <div class="promotion-container">
     <h1 class="title-ctr">코레일 승무원 승무표 정보 외부 시스템</h1>
-    <h2 class="title-ctr">안드로이드 앱 Closed 테스트 참여 신청</h2>
+    <h2 class="title-ctr">앱 테스트 참여 신청</h2>
     <h3 class="title-ctr">Made by <a href="https://github.com/SJang1" target="_blank" rel="noopener noreferrer">SJang1</a></h3>
     <br class="mar-bt-2">
     
@@ -96,6 +96,20 @@ const submitEmail = async () => {
         <button @click="submitted = false" class="reset-btn">
             다시 신청하기
         </button>
+    </div>
+
+    <div class="platform-section">
+        <h3>Android 베타 참여</h3>
+        <p>
+            베타 참여 권한이 활성화되면 아래 링크가 동작합니다.<br/>
+            아래 버튼을 눌러 테스트에 참여하세요.
+        </p>
+        <button @click="openLink('https://play.google.com/apps/testing/com.siliconsjang.sjkrlcrew')" class="tertiary-btn">
+            Google Play Store Testing 바로가기
+        </button>
+        <p class="hint">
+            Google Play 스토어 앱이 필요합니다.
+        </p>
     </div>
 
     <div class="platform-section">
