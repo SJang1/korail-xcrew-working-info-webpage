@@ -625,6 +625,37 @@ const handleUpdatePassword = async () => {
     }
 };
 
+const handleRemoveAccount = async () => {
+    if (!confirm('정말로 계정을 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.')) {
+        return;
+    }
+    
+    if (!confirm('다시 한번 확인합니다. 계정과 모든 데이터가 영구적으로 삭제됩니다. 계속하시겠습니까?')) {
+        return;
+    }
+
+    loading.value = true;
+    try {
+        const res = await fetchWithAuth('/api/user/account', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (res.success) {
+            message.value = "계정이 성공적으로 삭제되었습니다. 로그아웃됩니다...";
+            setTimeout(() => {
+                logout();
+            }, 2000);
+        } else {
+            throw new Error(res.message || "계정 삭제 실패");
+        }
+    } catch (e: any) {
+        error.value = e.message;
+    } finally {
+        loading.value = false;
+    }
+};
+
 const forceReload = () => {
     (window.location as any).reload(true); // true to force reload from the server, bypassing cache
 };
@@ -907,6 +938,14 @@ const forceReload = () => {
                   강제 새로고침 (캐시 지우기)
               </button>
               <p class="hint">문제가 발생했거나 최신 데이터가 표시되지 않을 때 사용하세요.</p>
+          </div>
+
+          <div class="form-section">
+              <h3>계정 삭제</h3>
+              <p class="hint">계정을 삭제하면 모든 데이터가 영구적으로 삭제됩니다. 이 작업은 취소할 수 없습니다.</p>
+              <button class="button-danger" @click="handleRemoveAccount" :disabled="loading">
+                  {{ loading ? '삭제 중...' : '계정 삭제' }}
+              </button>
           </div>
 
           <div class="form-section">
@@ -1263,5 +1302,7 @@ pre { background: #f8f9fa; padding: 1rem; border-radius: 8px; font-size: 0.8rem;
 .form-section h3 { margin-top: 0; margin-bottom: 1.5rem; color: #333; }
 .button-primary { background: #1976d2; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%; font-size: 1rem; }
 .button-primary:disabled { background: #7faddb; cursor: not-allowed; }
+.button-danger { background: #d32f2f; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%; font-size: 1rem; }
+.button-danger:disabled { background: #f48482; cursor: not-allowed; }
 .hint { font-size: 0.8rem; color: #666; margin-top: 0.5rem; }
 </style>

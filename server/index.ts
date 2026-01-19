@@ -33,7 +33,7 @@ export default {
             
             // --- Unified Authentication Middleware ---
             // Skip auth for login/register routes
-            if (path !== "/api/admin/login" && path !== "/api/auth/login" && path !== "/api/auth/register") {
+            if (path !== "/api/admin/login" && path !== "/api/auth/login" && path !== "/api/auth/register" && path !== "/api/closed-test/subscribe") {
                 session = await verifySession(env.KORAIL_XCREW_SESSION_KV, request, secret);
 
                 // Admin route protection
@@ -212,6 +212,31 @@ export default {
                         .run();
                     
                     return Response.json({ success: true, message: "Password updated successfully" }, { headers: corsHeaders });
+                }
+
+                if (path === "/api/user/account" && method === "DELETE") {
+                    if (!session) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
+                    
+                    const username = session.username;
+                    
+                    // Delete user and their related data
+                    const batch = [
+                        env.DB.prepare("DELETE FROM users WHERE username = ?").bind(username),
+                        env.DB.prepare("DELETE FROM schedules WHERE username = ?").bind(username),
+                        env.DB.prepare("DELETE FROM dia_info WHERE username = ?").bind(username),
+                        env.DB.prepare("DELETE FROM working_locations WHERE username = ?").bind(username)
+                    ];
+                    
+                    await env.DB.batch(batch);
+                    
+                    // Destroy session
+                    await destroySession(env.KORAIL_XCREW_SESSION_KV, username);
+                    
+                    // Clear the auth cookie
+                    const cookie = `auth_token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Strict`;
+                    const headers = { ...corsHeaders, "Set-Cookie": cookie };
+                    
+                    return Response.json({ success: true, message: "Account deleted successfully" }, { headers });
                 }
 
 
@@ -689,6 +714,35 @@ export default {
                         .bind(targetUsername, date)
                         .first();
                     return Response.json({ success: true, data: row ? JSON.parse(row.data as string) : null }, { headers: corsHeaders });
+                }
+
+                // --- Closed Test Endpoints ---
+                if (path === "/api/closed-test/subscribe" && method === "POST") {
+                    const { email, platform } = await request.json() as any;
+                    
+                    if (!email || !platform) {
+                        return new Response("Missing fields", { status: 400, headers: corsHeaders });
+                    }
+                    
+                    // Validate email
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(email)) {
+                        return new Response("Invalid email format", { status: 400, headers: corsHeaders });
+                    }
+                    
+                    // Validate platform
+                    if (!['iOS', 'Android'].includes(platform)) {
+                        return new Response("Invalid platform", { status: 400, headers: corsHeaders });
+                    }
+                    
+                    try {
+                        await env.DB.prepare("INSERT INTO closed_test_subscribers (email, platform) VALUES (?, ?)")
+                            .bind(email, platform)
+                            .run();
+                        return Response.json({ success: true, message: "Successfully subscribed to closed test" }, { headers: corsHeaders });
+                    } catch (e: any) {
+                        throw e;
+                    }
                 }
 
             } catch (e: any) {
