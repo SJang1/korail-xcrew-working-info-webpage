@@ -131,7 +131,7 @@ const submitEmail = async () => {
     
 
     <div class="footer-links">
-        <router-link to="/login">로그인 페이지로 돌아가기</router-link>
+        <router-link to="/">기존 페이지로 돌아가기</router-link>
     </div>
   </div>
 </template>
