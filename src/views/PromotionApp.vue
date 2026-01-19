@@ -99,20 +99,6 @@ const submitEmail = async () => {
     </div>
 
     <div class="platform-section">
-        <h3>Android 베타 참여</h3>
-        <p>
-            베타 참여 권한이 활성화되면 아래 링크가 동작합니다.<br/>
-            아래 버튼을 눌러 테스트에 참여하세요.
-        </p>
-        <button @click="openLink('https://play.google.com/apps/testing/com.siliconsjang.sjkrlcrew')" class="tertiary-btn">
-            Google Play Store Testing 바로가기
-        </button>
-        <p class="hint">
-            Google Play 스토어 앱이 필요합니다.
-        </p>
-    </div>
-
-    <div class="platform-section">
         <h3>iOS (아이폰) - TestFlight</h3>
         <p>
             현재 TestFlight 테스트를 진행하고 있습니다.<br/>
