@@ -53,8 +53,8 @@ const submitEmail = async () => {
 
 <template>
   <div class="promotion-container">
-    <h1 class="title-ctr">코레일 승무원 승무표 정보 외부 시스템</h1>
-    <h2 class="title-ctr">앱 테스트 참여 신청</h2>
+    <h1 class="title-ctr">K크루</h1>
+    <h2 class="title-ctr">모바일 어플리케이션 베타 참여 신청</h2>
     <h3 class="title-ctr">Made by <a href="https://github.com/SJang1" target="_blank" rel="noopener noreferrer">SJang1</a></h3>
     <br class="mar-bt-2">
     
