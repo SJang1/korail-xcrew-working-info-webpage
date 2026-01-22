@@ -44,21 +44,22 @@ const router = createRouter({
     {
       path: '/download',
       name: 'download',
+      component: PromotionApp,
       // redirect by os
-      redirect: () => {
+      beforeEnter: (to, from, next) => {
         const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
 
         // iOS detection
         if (/iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream) {
-          return 'https://apps.apple.com/us/app/k%ED%81%AC%EB%A3%A8/id6757957574';
+          window.location.href = 'https://apps.apple.com/us/app/k%ED%81%AC%EB%A3%A8/id6757957574';
         }
         // Android detection
         else if (/android/i.test(userAgent)) {
-          return 'https://play.google.com/store/apps/details?id=com.siliconsjang.sjkrlcrew';
+          window.location.href = 'https://play.google.com/store/apps/details?id=com.siliconsjang.sjkrlcrew';
         }
         // Default to web download page
         else {
-          return '/app';
+          next('/app');
         }
       },
     },
@@ -75,7 +76,10 @@ const router = createRouter({
     {
       path: '/support',
       name: 'support',
-      redirect: 'https://github.com/SJang1/korail-xcrew-app-worker/issues'
+      component: PromotionApp,
+      beforeEnter: () => {
+        window.location.href = 'https://github.com/SJang1/korail-xcrew-app-worker/issues';
+      }
     },
     // Admin Routes
     {
