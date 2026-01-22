@@ -42,6 +42,27 @@ const router = createRouter({
       component: PromotionApp,
     },
     {
+      path: '/download',
+      name: 'download',
+      // redirect by os
+      redirect: () => {
+        const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+
+        // iOS detection
+        if (/iPad|iPhone|iPod/.test(userAgent) && !(window as any).MSStream) {
+          return 'https://apps.apple.com/us/app/k%ED%81%AC%EB%A3%A8/id6757957574';
+        }
+        // Android detection
+        else if (/android/i.test(userAgent)) {
+          return 'https://play.google.com/store/apps/details?id=com.siliconsjang.sjkrlcrew';
+        }
+        // Default to web download page
+        else {
+          return '/app';
+        }
+      },
+    },
+    {
         path: '/privacy',
         name: 'privacy',
         component: PrivacyView,
