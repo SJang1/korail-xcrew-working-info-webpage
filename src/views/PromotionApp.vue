@@ -62,8 +62,7 @@ const submitEmail = async () => {
         <h3>iOS (아이폰) - TestFlight</h3>
         <p>
             TestFlight 테스트를 진행하고 있습니다.<br/>
-            아래 버튼을 눌러 TestFlight에 참여하세요.<br/>
-            참고: Apple에서 App Review를 완료하기 전까지는 참여가 어려울 수 있습니다.
+            아래 버튼을 눌러 TestFlight에 참여하세요.
         </p>
         <button @click="openLink('https://testflight.apple.com/join/cB2uCSdw')" class="tertiary-btn">
             iOS 앱 설치 (TestFlight)
