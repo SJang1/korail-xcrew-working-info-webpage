@@ -7,6 +7,7 @@ import AdminDashboardView from '../views/AdminDashboardView.vue'
 import AdminUserDetailView from '../views/AdminUserDetailView.vue'
 import AdminSettingsView from '../views/AdminSettingsView.vue'
 import PromotionApp from '../views/PromotionApp.vue'
+import PrivacyAppView from '../views/PrivacyViewApp.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -44,6 +45,11 @@ const router = createRouter({
         path: '/privacy',
         name: 'privacy',
         component: PrivacyView,
+    },
+    {
+      path: '/privacy-app',
+      name: 'privacy-app',
+      component: PrivacyAppView,
     },
     // Admin Routes
     {
