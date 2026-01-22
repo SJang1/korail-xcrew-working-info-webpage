@@ -51,6 +51,11 @@ const router = createRouter({
       name: 'privacy-app',
       component: PrivacyAppView,
     },
+    {
+      path: '/support',
+      name: 'support',
+      redirect: 'https://github.com/SJang1/korail-xcrew-app-worker/issues'
+    },
     // Admin Routes
     {
         path: '/adm',
