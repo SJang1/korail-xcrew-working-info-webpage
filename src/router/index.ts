@@ -8,6 +8,7 @@ import AdminUserDetailView from '../views/AdminUserDetailView.vue'
 import AdminSettingsView from '../views/AdminSettingsView.vue'
 import PromotionApp from '../views/PromotionApp.vue'
 import PrivacyAppView from '../views/PrivacyViewApp.vue'
+import SupportView from '../views/SupportView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -76,10 +77,7 @@ const router = createRouter({
     {
       path: '/support',
       name: 'support',
-      component: PromotionApp,
-      beforeEnter: () => {
-        window.location.href = 'https://github.com/SJang1/korail-xcrew-app-worker/issues';
-      }
+      component: SupportView
     },
     // Admin Routes
     {

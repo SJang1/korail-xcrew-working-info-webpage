@@ -33,7 +33,7 @@ export default {
             
             // --- Unified Authentication Middleware ---
             // Skip auth for login/register routes
-            if (path !== "/api/admin/login" && path !== "/api/auth/login" && path !== "/api/auth/register" && path !== "/api/closed-test/subscribe") {
+            if (path !== "/api/admin/login" && path !== "/api/auth/login" && path !== "/api/auth/register" && path !== "/api/closed-test/subscribe" && path !== "/api/support") {
                 session = await verifySession(env.KORAIL_XCREW_SESSION_KV, request, secret);
 
                 // Admin route protection
@@ -742,6 +742,23 @@ export default {
                         return Response.json({ success: true, message: "Successfully subscribed to closed test" }, { headers: corsHeaders });
                     } catch (e: any) {
                         throw e;
+                    }
+                }
+
+                if (path === "/api/support" && method === "POST") {
+                    const { email, category, message } = await request.json() as any;
+
+                    if (!email || !category || !message) {
+                        return new Response("Missing fields", { status: 400, headers: corsHeaders });
+                    }
+
+                    try {
+                        await env.DB.prepare("INSERT INTO support_requests (email, category, message) VALUES (?, ?, ?)")
+                            .bind(email, category, message)
+                            .run();
+                        return Response.json({ success: true, message: "Support request received" }, { headers: corsHeaders });
+                    } catch (e: any) {
+                        return new Response(`Error submitting support request: ${e.message}`, { status: 500, headers: corsHeaders });
                     }
                 }
 
